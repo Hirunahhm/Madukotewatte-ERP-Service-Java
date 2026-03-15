@@ -1,0 +1,29 @@
+# === Build output ===
+target/
+*.jar
+*.war
+
+# === Maven wrapper ===
+.mvn/wrapper/maven-wrapper.jar
+
+# === Environment ===
+.env
+
+# === IDE files ===
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+*.class
+
+# === Logs ===
+*.log
+logs/
+
+# === Docker volumes ===
+postgres_data/
+
+# === OS ===
+.DS_Store
+Thumbs.db
