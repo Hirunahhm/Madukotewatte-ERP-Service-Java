@@ -36,7 +36,7 @@ services:
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       SERVER_PORT: 8080
     ports:
-      - "8080:8080"      # expose app directly for dev; nginx proxies in prod
+      - "8081:8080"      # expose app directly for dev; nginx proxies in prod
 
   nginx:
     image: nginx:alpine
