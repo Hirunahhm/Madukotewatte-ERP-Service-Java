@@ -59,8 +59,18 @@ public class DailyOperationsService {
     @Transactional
     public List<AttendanceResponse> createAttendanceBulk(AttendanceBulkRequest request) {
         return request.getAttendances().stream()
-                .map(this::createAttendance)
+                .map(this::createAttendanceInternal)
                 .collect(Collectors.toList());
+    }
+
+    private AttendanceResponse createAttendanceInternal(AttendanceRequest request) {
+        Employee employee = findEmployeeById(request.getEmployeeId());
+        Calendar calendar = request.getCalendarId() != null
+                ? calendarRepository.findById(request.getCalendarId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Calendar", "id", request.getCalendarId()))
+                : null;
+        Attendance attendance = AttendanceMapper.toEntity(request, employee, calendar);
+        return AttendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
     public AttendanceResponse getAttendance(String id) {
