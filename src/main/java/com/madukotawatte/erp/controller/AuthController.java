@@ -30,11 +30,13 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         return ResponseEntity.ok(authService.getCurrentUser(userPrincipal.getUsername()));
     }
 
     @PutMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> changePassword(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody ChangePasswordRequest request) {

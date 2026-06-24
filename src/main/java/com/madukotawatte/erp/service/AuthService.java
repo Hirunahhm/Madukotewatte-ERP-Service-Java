@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,7 +41,7 @@ public class AuthService {
         return LoginResponse.builder()
                 .token(token)
                 .tokenType("Bearer")
-                .expiresIn(jwtTokenProvider.getExpirationMs())
+                .expiresIn(jwtTokenProvider.getExpirationMs() / 1000)
                 .username(userPrincipal.getUsername())
                 .role(userPrincipal.getAuthorities().iterator().next().getAuthority())
                 .build();
@@ -55,12 +56,17 @@ public class AuthService {
             throw new DuplicateResourceException("Email '" + request.getEmail() + "' is already in use");
         }
 
+        String role = request.getRole();
+        if (role != null && !List.of("ROLE_ADMIN", "ROLE_SUPERVISOR").contains(role)) {
+            throw new BadRequestException("Invalid role: " + role);
+        }
+
         User user = new User();
         user.setUserId(UUID.randomUUID().toString());
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPwHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole() != null ? request.getRole() : "ROLE_SUPERVISOR");
+        user.setRole(role != null ? role : "ROLE_SUPERVISOR");
 
         if (request.getEmployeeId() != null) {
             Employee employee = employeeRepository.findById(request.getEmployeeId())
