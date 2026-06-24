@@ -3,6 +3,7 @@ package com.madukotawatte.erp.mapper;
 import com.madukotawatte.erp.dto.attendance.AttendanceRequest;
 import com.madukotawatte.erp.dto.attendance.AttendanceResponse;
 import com.madukotawatte.erp.entity.Attendance;
+import com.madukotawatte.erp.entity.Calendar;
 import com.madukotawatte.erp.entity.Employee;
 
 import java.util.UUID;
@@ -10,10 +11,11 @@ import java.util.UUID;
 public class AttendanceMapper {
     private AttendanceMapper() {}
 
-    public static Attendance toEntity(AttendanceRequest request, Employee employee) {
+    public static Attendance toEntity(AttendanceRequest request, Employee employee, Calendar calendar) {
         Attendance attendance = new Attendance();
         attendance.setAttendanceId(UUID.randomUUID().toString());
         attendance.setEmployee(employee);
+        attendance.setCalendar(calendar);
         attendance.setTimestamp(request.getTimestamp());
         attendance.setNoOfTrees(request.getNoOfTrees());
         attendance.setNoWork(request.getNoWork() != null ? request.getNoWork() : "none");
@@ -25,6 +27,7 @@ public class AttendanceMapper {
                 .attendanceId(attendance.getAttendanceId())
                 .employeeId(attendance.getEmployee().getEmployeeId())
                 .employeeName(attendance.getEmployee().getName())
+                .calendarId(attendance.getCalendar() != null ? attendance.getCalendar().getCalendarId() : null)
                 .timestamp(attendance.getTimestamp())
                 .noOfTrees(attendance.getNoOfTrees())
                 .noWork(attendance.getNoWork())

@@ -23,6 +23,10 @@ public class EmployeeTransaction extends BaseEntity {
     @Column(length = 20)
     private String type;
 
+    // 'bank_transfer' | 'cash'
+    @Column(name = "payment_type", length = 20)
+    private String paymentType;
+
     @Column(precision = 15, scale = 2)
     private BigDecimal amount;
 

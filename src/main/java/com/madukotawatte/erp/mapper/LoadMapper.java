@@ -15,6 +15,7 @@ public class LoadMapper {
         load.setLoadType(request.getLoadType());
         load.setStartDate(request.getStartDate());
         load.setEndDate(request.getEndDate());
+        load.setStatus(request.getStatus() != null ? request.getStatus() : "pending");
         return load;
     }
 
@@ -24,6 +25,7 @@ public class LoadMapper {
                 .loadType(load.getLoadType())
                 .startDate(load.getStartDate())
                 .endDate(load.getEndDate())
+                .status(load.getStatus())
                 .createdAt(load.getCreatedAt())
                 .updatedAt(load.getUpdatedAt())
                 .build();

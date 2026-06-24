@@ -16,4 +16,5 @@ public class EmployeeSummaryResponse {
     private String name;
     private String position;
     private BigDecimal salary;
+    private Boolean isActive;
 }

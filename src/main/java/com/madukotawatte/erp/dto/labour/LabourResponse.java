@@ -1,4 +1,4 @@
-package com.madukotawatte.erp.dto.employeetransaction;
+package com.madukotawatte.erp.dto.labour;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,13 +12,17 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmployeeTransactionResponse {
-    private String transactionRecordId;
+public class LabourResponse {
+    private String labourId;
     private String employeeId;
     private String employeeName;
-    private String type;
-    private String paymentType;
+    private String transactionRecordId;
+    private Boolean isPaid;
+    private BigDecimal workedHours;
+    private BigDecimal hourlyRate;
     private BigDecimal amount;
-    private LocalDateTime timestamp;
+    private String workType;
+    private String description;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

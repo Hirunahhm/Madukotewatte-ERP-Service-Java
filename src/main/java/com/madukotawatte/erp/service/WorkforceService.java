@@ -77,6 +77,9 @@ public class WorkforceService {
         employee.setJoinedDate(request.getJoinedDate());
         employee.setSalary(request.getSalary());
         employee.setPosition(request.getPosition());
+        if (request.getIsActive() != null) {
+            employee.setIsActive(request.getIsActive());
+        }
         return EmployeeMapper.toResponse(employeeRepository.save(employee));
     }
 

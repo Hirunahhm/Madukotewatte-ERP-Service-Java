@@ -18,6 +18,10 @@ public class Attendance extends BaseEntity {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "calendar_id")
+    private Calendar calendar;
+
     private LocalDateTime timestamp;
 
     @Column(name = "no_of_trees")

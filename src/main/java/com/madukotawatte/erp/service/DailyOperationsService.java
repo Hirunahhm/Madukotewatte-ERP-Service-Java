@@ -15,6 +15,7 @@ import com.madukotawatte.erp.dto.metrolac.MetrolacReadingResponse;
 import com.madukotawatte.erp.dto.rubbersolid.RubberSolidRecordRequest;
 import com.madukotawatte.erp.dto.rubbersolid.RubberSolidRecordResponse;
 import com.madukotawatte.erp.entity.*;
+import com.madukotawatte.erp.repository.CalendarRepository;
 import com.madukotawatte.erp.exception.BadRequestException;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.*;
@@ -35,6 +36,7 @@ public class DailyOperationsService {
 
     private final AttendanceRepository attendanceRepository;
     private final EmployeeRepository employeeRepository;
+    private final CalendarRepository calendarRepository;
     private final LoadRepository loadRepository;
     private final LatexRecordRepository latexRecordRepository;
     private final MetrolacReadingRepository metrolacReadingRepository;
@@ -46,7 +48,11 @@ public class DailyOperationsService {
     @Transactional
     public AttendanceResponse createAttendance(AttendanceRequest request) {
         Employee employee = findEmployeeById(request.getEmployeeId());
-        Attendance attendance = AttendanceMapper.toEntity(request, employee);
+        Calendar calendar = request.getCalendarId() != null
+                ? calendarRepository.findById(request.getCalendarId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Calendar", "id", request.getCalendarId()))
+                : null;
+        Attendance attendance = AttendanceMapper.toEntity(request, employee, calendar);
         return AttendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
@@ -78,7 +84,12 @@ public class DailyOperationsService {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Attendance", "id", id));
         Employee employee = findEmployeeById(request.getEmployeeId());
+        Calendar calendar = request.getCalendarId() != null
+                ? calendarRepository.findById(request.getCalendarId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Calendar", "id", request.getCalendarId()))
+                : null;
         attendance.setEmployee(employee);
+        attendance.setCalendar(calendar);
         attendance.setTimestamp(request.getTimestamp());
         attendance.setNoOfTrees(request.getNoOfTrees());
         attendance.setNoWork(request.getNoWork() != null ? request.getNoWork() : "none");
@@ -117,6 +128,9 @@ public class DailyOperationsService {
         load.setLoadType(request.getLoadType());
         load.setStartDate(request.getStartDate());
         load.setEndDate(request.getEndDate());
+        if (request.getStatus() != null) {
+            load.setStatus(request.getStatus());
+        }
         return LoadMapper.toResponse(loadRepository.save(load));
     }
 

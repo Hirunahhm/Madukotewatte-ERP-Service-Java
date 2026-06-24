@@ -22,4 +22,7 @@ public class Load extends BaseEntity {
 
     @Column(name = "end_date")
     private LocalDateTime endDate;
+
+    @Column(nullable = false, length = 20)
+    private String status = "pending";
 }

@@ -1,4 +1,4 @@
-package com.madukotawatte.erp.dto.employee;
+package com.madukotawatte.erp.dto.sales;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,13 +13,15 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmployeeResponse {
-    private String employeeId;
-    private String name;
-    private LocalDate joinedDate;
-    private BigDecimal salary;
-    private String position;
-    private Boolean isActive;
+public class SalesRubberSolidResponse {
+    private String saleId;
+    private String loadId;
+    private LocalDate saleDate;
+    private BigDecimal mass;
+    private BigDecimal unitPrice;
+    private Boolean isPaid;
+    private String status;
+    private String paymentType;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -13,7 +13,8 @@ public class AmmoniaMapper {
         AmmoniaRecord record = new AmmoniaRecord();
         record.setRecordId(UUID.randomUUID().toString());
         record.setType(request.getType());
-        record.setLitres(request.getLitres());
+        record.setPreviousAmount(request.getPreviousAmount());
+        record.setNewAmount(request.getNewAmount());
         record.setTimestamp(request.getTimestamp());
         return record;
     }
@@ -22,7 +23,8 @@ public class AmmoniaMapper {
         return AmmoniaRecordResponse.builder()
                 .recordId(record.getRecordId())
                 .type(record.getType())
-                .litres(record.getLitres())
+                .previousAmount(record.getPreviousAmount())
+                .newAmount(record.getNewAmount())
                 .timestamp(record.getTimestamp())
                 .createdAt(record.getCreatedAt())
                 .build();

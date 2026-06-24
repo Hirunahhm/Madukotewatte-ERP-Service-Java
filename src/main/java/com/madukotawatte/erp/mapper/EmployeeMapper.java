@@ -27,6 +27,7 @@ public class EmployeeMapper {
                 .joinedDate(employee.getJoinedDate())
                 .salary(employee.getSalary())
                 .position(employee.getPosition())
+                .isActive(employee.getIsActive())
                 .createdAt(employee.getCreatedAt())
                 .updatedAt(employee.getUpdatedAt())
                 .build();
@@ -38,6 +39,7 @@ public class EmployeeMapper {
                 .name(employee.getName())
                 .position(employee.getPosition())
                 .salary(employee.getSalary())
+                .isActive(employee.getIsActive())
                 .build();
     }
 }

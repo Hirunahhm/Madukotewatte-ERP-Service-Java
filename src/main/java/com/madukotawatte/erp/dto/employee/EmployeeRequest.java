@@ -21,4 +21,6 @@ public class EmployeeRequest {
     private BigDecimal salary;
 
     private String position;
+
+    private Boolean isActive;
 }

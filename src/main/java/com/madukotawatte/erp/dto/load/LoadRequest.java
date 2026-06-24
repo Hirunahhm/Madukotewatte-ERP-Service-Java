@@ -15,4 +15,6 @@ public class LoadRequest {
     private LocalDateTime startDate;
 
     private LocalDateTime endDate;
+
+    private String status = "pending";
 }
