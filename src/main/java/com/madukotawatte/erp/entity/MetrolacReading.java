@@ -22,5 +22,8 @@ public class MetrolacReading extends BaseEntity {
     @Column(precision = 5, scale = 2)
     private BigDecimal temperature;
 
+    @Column(precision = 6, scale = 2)
+    private BigDecimal reading;
+
     private LocalDateTime timestamp;
 }

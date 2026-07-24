@@ -15,6 +15,7 @@ public class MetrolacMapper {
         reading.setMetrolacId(UUID.randomUUID().toString());
         reading.setLoad(load);
         reading.setTemperature(request.getTemperature());
+        reading.setReading(request.getReading());
         reading.setTimestamp(request.getTimestamp());
         return reading;
     }
@@ -24,6 +25,7 @@ public class MetrolacMapper {
                 .metrolacId(reading.getMetrolacId())
                 .loadId(reading.getLoad().getLoadId())
                 .temperature(reading.getTemperature())
+                .reading(reading.getReading())
                 .timestamp(reading.getTimestamp())
                 .createdAt(reading.getCreatedAt())
                 .build();

@@ -3,6 +3,8 @@ package com.madukotawatte.erp.controller;
 import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.load.LoadRequest;
 import com.madukotawatte.erp.dto.load.LoadResponse;
+import com.madukotawatte.erp.dto.load.LoadSummaryResponse;
+import com.madukotawatte.erp.dto.load.VolumeTrendResponse;
 import com.madukotawatte.erp.service.DailyOperationsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,10 +37,26 @@ public class LoadController {
         return ResponseEntity.ok(dailyOperationsService.getLoad(id));
     }
 
+    @GetMapping("/{id}/summary")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<LoadSummaryResponse> getLoadSummary(@PathVariable String id) {
+        return ResponseEntity.ok(dailyOperationsService.getLoadSummary(id));
+    }
+
+    @GetMapping("/{id}/trends")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<java.util.List<VolumeTrendResponse>> getLoadTrends(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(dailyOperationsService.getLoadTrends(id, days));
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
-    public ResponseEntity<PageResponse<LoadResponse>> getAllLoads(@PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllLoads(pageable));
+    public ResponseEntity<PageResponse<LoadResponse>> getAllLoads(
+            @RequestParam(required = false) String loadType,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(dailyOperationsService.getAllLoads(loadType, pageable));
     }
 
     @GetMapping("/range")

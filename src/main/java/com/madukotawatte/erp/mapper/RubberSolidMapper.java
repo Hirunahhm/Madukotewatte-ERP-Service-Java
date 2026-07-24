@@ -15,6 +15,7 @@ public class RubberSolidMapper {
         record.setRecordId(UUID.randomUUID().toString());
         record.setLoad(load);
         record.setMassKg(request.getMassKg());
+        record.setTimestamp(request.getTimestamp());
         return record;
     }
 
@@ -23,6 +24,7 @@ public class RubberSolidMapper {
                 .recordId(record.getRecordId())
                 .loadId(record.getLoad().getLoadId())
                 .massKg(record.getMassKg())
+                .timestamp(record.getTimestamp())
                 .createdAt(record.getCreatedAt())
                 .build();
     }

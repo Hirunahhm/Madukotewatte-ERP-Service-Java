@@ -16,5 +16,6 @@ public class RubberSolidRecordResponse {
     private String recordId;
     private String loadId;
     private BigDecimal massKg;
+    private LocalDateTime timestamp;
     private LocalDateTime createdAt;
 }
