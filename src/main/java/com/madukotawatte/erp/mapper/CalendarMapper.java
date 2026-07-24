@@ -15,6 +15,7 @@ public class CalendarMapper {
         calendar.setCalendarDate(request.getCalendarDate());
         calendar.setIsHoliday(request.getIsHoliday() != null ? request.getIsHoliday() : false);
         calendar.setRained(request.getRained() != null ? request.getRained() : false);
+        calendar.setIsWorking(request.getIsWorking() != null ? request.getIsWorking() : true);
         calendar.setDescription(request.getDescription());
         return calendar;
     }
@@ -25,6 +26,7 @@ public class CalendarMapper {
                 .calendarDate(calendar.getCalendarDate())
                 .isHoliday(calendar.getIsHoliday())
                 .rained(calendar.getRained())
+                .isWorking(calendar.getIsWorking())
                 .description(calendar.getDescription())
                 .createdAt(calendar.getCreatedAt())
                 .build();

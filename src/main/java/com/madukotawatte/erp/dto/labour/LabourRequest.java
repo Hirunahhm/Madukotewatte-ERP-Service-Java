@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class LabourRequest {
@@ -32,4 +33,9 @@ public class LabourRequest {
     private String workType;
 
     private String description;
+
+    private LocalDateTime timestamp;
+
+    // 'bank_transfer' | 'cash' — required only when isPaid=true (validated in service layer)
+    private String paymentType;
 }

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -23,6 +24,8 @@ public class LabourResponse {
     private BigDecimal amount;
     private String workType;
     private String description;
+    private LocalDateTime timestamp;
+    private String paymentType;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -5,6 +5,7 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeRequest;
 import com.madukotawatte.erp.dto.employee.EmployeeResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeSummaryResponse;
+import com.madukotawatte.erp.dto.employee.PaymentSummaryResponse;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
 import com.madukotawatte.erp.service.WorkforceService;
 import jakarta.validation.Valid;
@@ -39,6 +40,12 @@ public class EmployeeController {
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<List<EmployeeSummaryResponse>> getAllEmployeesSummary() {
         return ResponseEntity.ok(workforceService.getAllEmployeesSummary());
+    }
+
+    @GetMapping("/payment-summary")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<PaymentSummaryResponse> getPaymentSummary() {
+        return ResponseEntity.ok(workforceService.getPaymentSummary());
     }
 
     @GetMapping("/{id}")

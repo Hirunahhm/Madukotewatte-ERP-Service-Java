@@ -6,6 +6,7 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeRequest;
 import com.madukotawatte.erp.dto.employee.EmployeeResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeSummaryResponse;
+import com.madukotawatte.erp.dto.employee.PaymentSummaryResponse;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
 import com.madukotawatte.erp.dto.loan.EmployeeLoanRequest;
 import com.madukotawatte.erp.dto.loan.EmployeeLoanResponse;
@@ -23,12 +24,16 @@ import com.madukotawatte.erp.repository.AttendanceRepository;
 import com.madukotawatte.erp.repository.EmployeeLoanRepository;
 import com.madukotawatte.erp.repository.EmployeeRepository;
 import com.madukotawatte.erp.repository.EmployeeTransactionRepository;
+import com.madukotawatte.erp.repository.LabourRepository;
+import com.madukotawatte.erp.entity.Labour;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,6 +46,7 @@ public class WorkforceService {
     private final EmployeeLoanRepository employeeLoanRepository;
     private final EmployeeTransactionRepository employeeTransactionRepository;
     private final AttendanceRepository attendanceRepository;
+    private final LabourRepository labourRepository;
 
     // Employee CRUD
     public PageResponse<EmployeeResponse> getAllEmployees(String name, Pageable pageable) {
@@ -176,5 +182,36 @@ public class WorkforceService {
     private Employee findEmployeeById(String id) {
         return employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
+    }
+
+    // Payment summary (Payment tab KPI cards)
+    public PaymentSummaryResponse getPaymentSummary() {
+        BigDecimal totalSalaryCost = employeeRepository.findByIsActiveTrue().stream()
+                .map(Employee::getSalary)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
+
+        BigDecimal toBePaid = labourRepository.findByIsPaidAndTimestampBetween(false, startOfMonth, endOfMonth)
+                .stream().map(Labour::getAmount).filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal paidAmount = labourRepository.findByIsPaidAndTimestampBetween(true, startOfMonth, endOfMonth)
+                .stream().map(Labour::getAmount).filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal activeEmployeeLoansTotal = employeeLoanRepository.findByIsActiveTrue().stream()
+                .map(EmployeeLoan::getCurrentBalance)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return PaymentSummaryResponse.builder()
+                .totalSalaryCost(totalSalaryCost)
+                .toBePaid(toBePaid)
+                .paidAmount(paidAmount)
+                .activeEmployeeLoansTotal(activeEmployeeLoansTotal)
+                .build();
     }
 }

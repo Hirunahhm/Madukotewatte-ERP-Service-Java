@@ -2,10 +2,17 @@ package com.madukotawatte.erp.service;
 
 import com.madukotawatte.erp.dto.ammonia.AmmoniaRecordRequest;
 import com.madukotawatte.erp.dto.ammonia.AmmoniaRecordResponse;
+import com.madukotawatte.erp.dto.calendar.CalendarRequest;
+import com.madukotawatte.erp.dto.calendar.CalendarResponse;
 import com.madukotawatte.erp.dto.attendance.AttendanceBulkRequest;
+import java.time.LocalDate;
+import java.util.Set;
+import java.util.UUID;
 import com.madukotawatte.erp.dto.attendance.AttendanceRequest;
 import com.madukotawatte.erp.dto.attendance.AttendanceResponse;
 import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.labour.LabourRequest;
+import com.madukotawatte.erp.dto.labour.LabourResponse;
 import com.madukotawatte.erp.dto.latex.LatexRecordRequest;
 import com.madukotawatte.erp.dto.latex.LatexRecordResponse;
 import com.madukotawatte.erp.dto.load.LoadRequest;
@@ -43,6 +50,8 @@ public class DailyOperationsService {
     private final AmmoniaRecordRepository ammoniaRecordRepository;
     private final RubberSolidRecordRepository rubberSolidRecordRepository;
     private final SalesLatexRepository salesLatexRepository;
+    private final LabourRepository labourRepository;
+    private final EmployeeTransactionRepository employeeTransactionRepository;
 
     // ── Attendance ──────────────────────────────────────────────
     @Transactional
@@ -288,6 +297,88 @@ public class DailyOperationsService {
         return PageResponse.from(rubberSolidRecordRepository.findAll(pageable).map(RubberSolidMapper::toResponse));
     }
 
+    // ── Labour ──────────────────────────────────────────────────
+    @Transactional
+    public LabourResponse createLabour(LabourRequest request) {
+        Employee employee = findEmployeeById(request.getEmployeeId());
+
+        EmployeeTransaction transaction = null;
+        if (Boolean.TRUE.equals(request.getIsPaid())) {
+            if (request.getPaymentType() == null || request.getPaymentType().isBlank()) {
+                throw new BadRequestException("paymentType is required when isPaid=true");
+            }
+            transaction = createLinkedTransaction(employee, request);
+        }
+
+        Labour labour = LabourMapper.toEntity(request, employee, transaction);
+        return LabourMapper.toResponse(labourRepository.save(labour));
+    }
+
+    public LabourResponse getLabour(String id) {
+        return LabourMapper.toResponse(findLabourById(id));
+    }
+
+    public PageResponse<LabourResponse> getAllLabour(Pageable pageable) {
+        return PageResponse.from(labourRepository.findAll(pageable).map(LabourMapper::toResponse));
+    }
+
+    public List<LabourResponse> getLabourByDateRange(LocalDateTime from, LocalDateTime to) {
+        return labourRepository.findByTimestampBetween(from, to).stream()
+                .map(LabourMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public LabourResponse updateLabour(String id, LabourRequest request) {
+        Labour labour = findLabourById(id);
+        Employee employee = findEmployeeById(request.getEmployeeId());
+
+        boolean newlyPaid = Boolean.TRUE.equals(request.getIsPaid()) && labour.getEmployeeTransaction() == null;
+        if (newlyPaid) {
+            if (request.getPaymentType() == null || request.getPaymentType().isBlank()) {
+                throw new BadRequestException("paymentType is required when isPaid=true");
+            }
+            labour.setEmployeeTransaction(createLinkedTransaction(employee, request));
+        }
+
+        labour.setEmployee(employee);
+        labour.setIsPaid(request.getIsPaid() != null ? request.getIsPaid() : false);
+        labour.setWorkedHours(request.getWorkedHours());
+        labour.setHourlyRate(request.getHourlyRate());
+        labour.setAmount(request.getAmount());
+        labour.setWorkType(request.getWorkType());
+        labour.setDescription(request.getDescription());
+        if (request.getTimestamp() != null) {
+            labour.setTimestamp(request.getTimestamp());
+        }
+        if (request.getPaymentType() != null) {
+            labour.setPaymentType(request.getPaymentType());
+        }
+        return LabourMapper.toResponse(labourRepository.save(labour));
+    }
+
+    @Transactional
+    public void deleteLabour(String id) {
+        labourRepository.delete(findLabourById(id));
+    }
+
+    private EmployeeTransaction createLinkedTransaction(Employee employee, LabourRequest request) {
+        EmployeeTransaction transaction = EmployeeTransaction.builder()
+                .transactionRecordId(UUID.randomUUID().toString())
+                .employee(employee)
+                .type("Manual_Labor")
+                .paymentType(request.getPaymentType())
+                .amount(request.getAmount())
+                .timestamp(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now())
+                .build();
+        return employeeTransactionRepository.save(transaction);
+    }
+
+    private Labour findLabourById(String id) {
+        return labourRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Labour", "id", id));
+    }
+
     // ── Helpers ─────────────────────────────────────────────────
     private Employee findEmployeeById(String id) {
         return employeeRepository.findById(id)
@@ -297,5 +388,77 @@ public class DailyOperationsService {
     private Load findLoadById(String id) {
         return loadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Load", "id", id));
+    }
+
+    // ── Calendar Operations ─────────────────────────────────────
+    @Transactional
+    public CalendarResponse createOrUpdateCalendar(CalendarRequest request) {
+        LocalDate date = request.getCalendarDate();
+        Calendar calendar = calendarRepository.findByCalendarDate(date)
+                .orElse(null);
+
+        if (calendar == null) {
+            calendar = CalendarMapper.toEntity(request);
+        } else {
+            calendar.setIsHoliday(request.getIsHoliday() != null ? request.getIsHoliday() : false);
+            calendar.setRained(request.getRained() != null ? request.getRained() : false);
+            calendar.setIsWorking(request.getIsWorking() != null ? request.getIsWorking() : true);
+            calendar.setDescription(request.getDescription());
+        }
+
+        Calendar savedCalendar = calendarRepository.save(calendar);
+
+        // Propagation logic: If non-working day, auto-log default attendance
+        if (Boolean.FALSE.equals(savedCalendar.getIsWorking()) || 
+            Boolean.TRUE.equals(savedCalendar.getIsHoliday()) || 
+            Boolean.TRUE.equals(savedCalendar.getRained())) {
+            
+            LocalDateTime startOfDay = date.atStartOfDay();
+            LocalDateTime endOfDay = date.atTime(23, 59, 59, 999999999);
+
+            // 1. Get IDs of employees who already have attendance logged for this date.
+            List<Attendance> existingLogs = attendanceRepository.findByTimestampBetween(startOfDay, endOfDay);
+            Set<String> alreadyLoggedEmployeeIds = existingLogs.stream()
+                    .map(a -> a.getEmployee().getEmployeeId())
+                    .collect(Collectors.toSet());
+
+            // 2. Fetch all active employees.
+            List<Employee> activeEmployees = employeeRepository.findByIsActiveTrue();
+
+            // 3. For any active employee without attendance, generate a default "no-work" record.
+            String noWorkReason = "none";
+            if (Boolean.TRUE.equals(savedCalendar.getIsHoliday())) {
+                noWorkReason = "public_holiday";
+            } else if (Boolean.TRUE.equals(savedCalendar.getRained())) {
+                noWorkReason = "rain";
+            } else if (Boolean.FALSE.equals(savedCalendar.getIsWorking())) {
+                noWorkReason = "public_holiday"; // default fallback for general non-working day
+            }
+
+            for (Employee employee : activeEmployees) {
+                if (!alreadyLoggedEmployeeIds.contains(employee.getEmployeeId())) {
+                    Attendance attendance = new Attendance();
+                    attendance.setAttendanceId(UUID.randomUUID().toString());
+                    attendance.setEmployee(employee);
+                    attendance.setCalendar(savedCalendar);
+                    attendance.setTimestamp(startOfDay); // set default daily timestamp (start of day)
+                    attendance.setNoOfTrees(0);
+                    attendance.setNoWork(noWorkReason);
+                    attendanceRepository.save(attendance);
+                }
+            }
+        }
+
+        return CalendarMapper.toResponse(savedCalendar);
+    }
+
+    public CalendarResponse getCalendarByDate(LocalDate date) {
+        Calendar calendar = calendarRepository.findByCalendarDate(date)
+                .orElseThrow(() -> new ResourceNotFoundException("Calendar", "date", date.toString()));
+        return CalendarMapper.toResponse(calendar);
+    }
+
+    public PageResponse<CalendarResponse> getAllCalendars(Pageable pageable) {
+        return PageResponse.from(calendarRepository.findAll(pageable).map(CalendarMapper::toResponse));
     }
 }

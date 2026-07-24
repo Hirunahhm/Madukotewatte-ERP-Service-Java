@@ -27,7 +27,7 @@ public class Attendance extends BaseEntity {
     @Column(name = "no_of_trees")
     private Integer noOfTrees;
 
-    // 'none' | 'rain' | 'ill' | 'no_loads' | 'holiday'
-    @Column(name = "no_work", length = 10)
+    // 'none' | 'rain' | 'sick' | 'other' | 'public_holiday' | 'funeral' | 'family_matter' | 'kids'
+    @Column(name = "no_work", length = 20)
     private String noWork = "none";
 }

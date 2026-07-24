@@ -6,6 +6,7 @@ import com.madukotawatte.erp.entity.Employee;
 import com.madukotawatte.erp.entity.EmployeeTransaction;
 import com.madukotawatte.erp.entity.Labour;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class LabourMapper {
@@ -22,6 +23,8 @@ public class LabourMapper {
         labour.setAmount(request.getAmount());
         labour.setWorkType(request.getWorkType());
         labour.setDescription(request.getDescription());
+        labour.setTimestamp(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now());
+        labour.setPaymentType(request.getPaymentType());
         return labour;
     }
 
@@ -38,6 +41,8 @@ public class LabourMapper {
                 .amount(labour.getAmount())
                 .workType(labour.getWorkType())
                 .description(labour.getDescription())
+                .timestamp(labour.getTimestamp())
+                .paymentType(labour.getPaymentType())
                 .createdAt(labour.getCreatedAt())
                 .updatedAt(labour.getUpdatedAt())
                 .build();

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "labour")
@@ -39,4 +40,10 @@ public class Labour extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    private LocalDateTime timestamp;
+
+    // 'bank_transfer' | 'cash'
+    @Column(name = "payment_type", length = 20)
+    private String paymentType;
 }

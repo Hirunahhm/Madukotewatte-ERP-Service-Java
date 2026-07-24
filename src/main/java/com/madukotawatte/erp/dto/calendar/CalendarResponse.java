@@ -17,6 +17,7 @@ public class CalendarResponse {
     private LocalDate calendarDate;
     private Boolean isHoliday;
     private Boolean rained;
+    private Boolean isWorking;
     private String description;
     private LocalDateTime createdAt;
 }

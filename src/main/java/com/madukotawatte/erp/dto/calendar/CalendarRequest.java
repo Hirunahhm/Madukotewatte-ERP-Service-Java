@@ -14,5 +14,7 @@ public class CalendarRequest {
 
     private Boolean rained = false;
 
+    private Boolean isWorking = true;
+
     private String description;
 }

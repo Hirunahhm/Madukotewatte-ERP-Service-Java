@@ -23,6 +23,9 @@ public class Calendar extends BaseEntity {
     @Column(nullable = false)
     private Boolean rained = false;
 
+    @Column(name = "is_working", nullable = false)
+    private Boolean isWorking = true;
+
     @Column(length = 255)
     private String description;
 }
