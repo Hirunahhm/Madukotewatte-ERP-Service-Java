@@ -5,15 +5,18 @@ import com.madukotawatte.erp.dto.attendance.AttendanceResponse;
 import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeRequest;
 import com.madukotawatte.erp.dto.employee.EmployeeResponse;
+import com.madukotawatte.erp.dto.employee.EmployeeAttendanceStatsResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeSummaryResponse;
 import com.madukotawatte.erp.dto.employee.PaymentSummaryResponse;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
+import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionStatsResponse;
 import com.madukotawatte.erp.dto.loan.EmployeeLoanRequest;
 import com.madukotawatte.erp.dto.loan.EmployeeLoanResponse;
 import com.madukotawatte.erp.dto.loan.UpdateLoanRequest;
 import com.madukotawatte.erp.entity.Attendance;
 import com.madukotawatte.erp.entity.Employee;
 import com.madukotawatte.erp.entity.EmployeeLoan;
+import com.madukotawatte.erp.entity.EmployeeTransaction;
 import com.madukotawatte.erp.exception.BadRequestException;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.AttendanceMapper;
@@ -29,6 +32,7 @@ import com.madukotawatte.erp.entity.Labour;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -155,19 +159,56 @@ public class WorkforceService {
     }
 
     public PageResponse<EmployeeTransactionResponse> getEmployeeTransactionsPaged(
-            String employeeId, LocalDateTime from, LocalDateTime to, Pageable pageable) {
+            String employeeId, LocalDateTime from, LocalDateTime to, String type, Pageable pageable) {
         findEmployeeById(employeeId);
         Page<EmployeeTransactionResponse> page = employeeTransactionRepository
-                .findByEmployee_EmployeeIdAndTimestampBetween(employeeId, from, to, pageable)
+                .findAll(transactionSpec(employeeId, from, to, type), pageable)
                 .map(EmployeeTransactionMapper::toResponse);
         return PageResponse.from(page);
     }
 
+    public EmployeeTransactionStatsResponse getEmployeeTransactionStats(
+            String employeeId, LocalDateTime from, LocalDateTime to) {
+        findEmployeeById(employeeId);
+        List<EmployeeTransaction> records = employeeTransactionRepository.findAll(transactionSpec(employeeId, from, to, null));
+
+        BigDecimal total = sumAmounts(records);
+        BigDecimal manualLabor = sumAmountsByType(records, "Manual_Labor");
+        BigDecimal advances = sumAmountsByType(records, "Advance");
+        BigDecimal loanPayments = sumAmountsByType(records, "Loan_Payment");
+        BigDecimal latexTap = sumAmountsByType(records, "Latex_Tap");
+
+        return EmployeeTransactionStatsResponse.builder()
+                .totalAmount(total)
+                .manualLabor(manualLabor)
+                .advances(advances)
+                .loanPayments(loanPayments)
+                .latexTap(latexTap)
+                .transactionCount(records.size())
+                .build();
+    }
+
+    private BigDecimal sumAmounts(List<EmployeeTransaction> records) {
+        return records.stream()
+                .map(EmployeeTransaction::getAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal sumAmountsByType(List<EmployeeTransaction> records, String type) {
+        return records.stream()
+                .filter(t -> type.equals(t.getType()))
+                .map(EmployeeTransaction::getAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     // Employee attendance
-    public PageResponse<AttendanceResponse> getEmployeeAttendance(String employeeId, Pageable pageable) {
+    public PageResponse<AttendanceResponse> getEmployeeAttendance(
+            String employeeId, LocalDateTime from, LocalDateTime to, String status, Pageable pageable) {
         findEmployeeById(employeeId);
         Page<AttendanceResponse> page = attendanceRepository
-                .findByEmployee_EmployeeId(employeeId, pageable)
+                .findAll(attendanceSpec(employeeId, from, to, status), pageable)
                 .map(AttendanceMapper::toResponse);
         return PageResponse.from(page);
     }
@@ -179,9 +220,69 @@ public class WorkforceService {
                 .stream().map(AttendanceMapper::toResponse).collect(Collectors.toList());
     }
 
+    public EmployeeAttendanceStatsResponse getEmployeeAttendanceStats(
+            String employeeId, LocalDateTime from, LocalDateTime to) {
+        findEmployeeById(employeeId);
+        List<Attendance> records = attendanceRepository.findAll(attendanceSpec(employeeId, from, to, null));
+
+        long total = records.size();
+        long present = records.stream().filter(a -> "none".equals(a.getNoWork())).count();
+        long absent = total - present;
+        long totalTrees = records.stream()
+                .mapToLong(a -> a.getNoOfTrees() != null ? a.getNoOfTrees() : 0)
+                .sum();
+        double avgTrees = present > 0 ? Math.round(((double) totalTrees / present) * 100) / 100.0 : 0;
+        double rate = total > 0 ? Math.round((present * 10000.0 / total)) / 100.0 : 0;
+
+        return EmployeeAttendanceStatsResponse.builder()
+                .totalDays(total)
+                .presentDays(present)
+                .absentDays(absent)
+                .totalTreesTapped(totalTrees)
+                .avgTreesPerPresentDay(avgTrees)
+                .attendanceRatePercent(rate)
+                .build();
+    }
+
     private Employee findEmployeeById(String id) {
         return employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
+    }
+
+    private Specification<Attendance> attendanceSpec(
+            String employeeId, LocalDateTime from, LocalDateTime to, String status) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            predicates.add(cb.equal(root.get("employee").get("employeeId"), employeeId));
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to));
+            }
+            if (status != null && !status.isBlank()) {
+                predicates.add(cb.equal(root.get("noWork"), status));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+
+    private Specification<EmployeeTransaction> transactionSpec(
+            String employeeId, LocalDateTime from, LocalDateTime to, String type) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            predicates.add(cb.equal(root.get("employee").get("employeeId"), employeeId));
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to));
+            }
+            if (type != null && !type.isBlank()) {
+                predicates.add(cb.equal(root.get("type"), type));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
     }
 
     // Payment summary (Payment tab KPI cards)

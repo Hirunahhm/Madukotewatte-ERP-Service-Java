@@ -402,7 +402,7 @@ class EmployeeControllerTest {
                     .content(List.of(att))
                     .pageNumber(0).pageSize(20).totalElements(1).totalPages(1).last(true)
                     .build();
-            when(workforceService.getEmployeeAttendance(eq(EMP_ID), any())).thenReturn(page);
+            when(workforceService.getEmployeeAttendance(eq(EMP_ID), any(), any(), any(), any())).thenReturn(page);
 
             mockMvc.perform(get(BASE_URL + "/{id}/attendance", EMP_ID))
                     .andExpect(status().isOk())
@@ -482,20 +482,28 @@ class EmployeeControllerTest {
                     .type("Advance").paymentType("cash").amount(new BigDecimal("5000.00"))
                     .timestamp(LocalDateTime.now()).createdAt(LocalDateTime.now())
                     .build();
-            when(workforceService.getEmployeeTransactions(EMP_ID)).thenReturn(List.of(txn));
+            PageResponse<EmployeeTransactionResponse> page = PageResponse.<EmployeeTransactionResponse>builder()
+                    .content(List.of(txn))
+                    .pageNumber(0).pageSize(20).totalElements(1).totalPages(1).last(true)
+                    .build();
+            when(workforceService.getEmployeeTransactionsPaged(eq(EMP_ID), any(), any(), any(), any())).thenReturn(page);
 
             mockMvc.perform(get(BASE_URL + "/{id}/transactions", EMP_ID))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].transactionRecordId").value("txn-001"))
-                    .andExpect(jsonPath("$[0].type").value("Advance"))
-                    .andExpect(jsonPath("$[0].paymentType").value("cash"));
+                    .andExpect(jsonPath("$.content[0].transactionRecordId").value("txn-001"))
+                    .andExpect(jsonPath("$.content[0].type").value("Advance"))
+                    .andExpect(jsonPath("$.content[0].paymentType").value("cash"));
         }
 
         @Test
         @WithMockUser(roles = "SUPERVISOR")
         @DisplayName("supervisor → 200")
         void asSupervisor_returns200() throws Exception {
-            when(workforceService.getEmployeeTransactions(EMP_ID)).thenReturn(List.of());
+            PageResponse<EmployeeTransactionResponse> emptyPage = PageResponse.<EmployeeTransactionResponse>builder()
+                    .content(List.of())
+                    .pageNumber(0).pageSize(20).totalElements(0).totalPages(0).last(true)
+                    .build();
+            when(workforceService.getEmployeeTransactionsPaged(eq(EMP_ID), any(), any(), any(), any())).thenReturn(emptyPage);
 
             mockMvc.perform(get(BASE_URL + "/{id}/transactions", EMP_ID))
                     .andExpect(status().isOk());
