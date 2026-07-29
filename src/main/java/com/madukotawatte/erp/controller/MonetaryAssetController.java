@@ -28,8 +28,9 @@ public class MonetaryAssetController {
     private final FinanceService financeService;
 
     @GetMapping("/balances")
-    public ResponseEntity<List<AssetBalanceResponse>> getAssetBalances() {
-        return ResponseEntity.ok(financeService.getAssetBalances());
+    public ResponseEntity<List<AssetBalanceResponse>> getAssetBalances(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
+        return ResponseEntity.ok(financeService.getAssetBalances(asOf));
     }
 
     @GetMapping("/trend")

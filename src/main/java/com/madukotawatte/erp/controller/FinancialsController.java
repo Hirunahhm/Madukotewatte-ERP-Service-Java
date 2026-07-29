@@ -36,13 +36,17 @@ public class FinancialsController {
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<SalesSummaryResponse> getSalesSummary() {
-        return ResponseEntity.ok(financeService.getSalesSummary());
+    public ResponseEntity<SalesSummaryResponse> getSalesSummary(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(financeService.getSalesSummary(from, to));
     }
 
     @GetMapping("/distribution")
-    public ResponseEntity<List<CategoryTotalResponse>> getSalesDistribution() {
-        return ResponseEntity.ok(financeService.getSalesDistribution());
+    public ResponseEntity<List<CategoryTotalResponse>> getSalesDistribution(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(financeService.getSalesDistribution(from, to));
     }
 
     @GetMapping("/trend")

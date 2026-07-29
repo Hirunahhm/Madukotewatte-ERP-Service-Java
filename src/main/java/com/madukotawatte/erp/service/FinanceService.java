@@ -78,12 +78,32 @@ public class FinanceService {
 
     // ── Monetary Assets ─────────────────────────────────────────
     public List<AssetBalanceResponse> getAssetBalances() {
-        List<Object[]> results = monetaryAssetTransactionRepository.findBalanceByAssetType();
-        return results.stream()
-                .map(row -> AssetBalanceResponse.builder()
-                        .assetType((String) row[0])
-                        .balance((BigDecimal) row[1])
-                        .build())
+        return getAssetBalances(null);
+    }
+
+    /** asOf == null returns the current balance; otherwise reconstructs the balance as of that date (inclusive). */
+    public List<AssetBalanceResponse> getAssetBalances(LocalDate asOf) {
+        if (asOf == null) {
+            List<Object[]> results = monetaryAssetTransactionRepository.findBalanceByAssetType();
+            return results.stream()
+                    .map(row -> AssetBalanceResponse.builder()
+                            .assetType((String) row[0])
+                            .balance((BigDecimal) row[1])
+                            .build())
+                    .collect(Collectors.toList());
+        }
+        java.util.Map<String, BigDecimal> balances = new java.util.LinkedHashMap<>();
+        for (Object[] row : monetaryAssetTransactionRepository.findAllOrderedByCreatedAt()) {
+            String assetType = (String) row[0];
+            java.time.LocalDateTime createdAt = (java.time.LocalDateTime) row[1];
+            BigDecimal newAmount = (BigDecimal) row[2];
+            if (createdAt.toLocalDate().isAfter(asOf)) {
+                continue;
+            }
+            balances.put(assetType, newAmount);
+        }
+        return balances.entrySet().stream()
+                .map(e -> AssetBalanceResponse.builder().assetType(e.getKey()).balance(e.getValue()).build())
                 .collect(Collectors.toList());
     }
 
@@ -152,12 +172,22 @@ public class FinanceService {
 
     // ── Estate Loans ────────────────────────────────────────────
     public List<EstateLoanBalanceResponse> getEstateLoanBalances() {
+        return getEstateLoanBalances(null);
+    }
+
+    /** asOf == null returns the current balance; otherwise reconstructs the balance as of that date (inclusive). */
+    public List<EstateLoanBalanceResponse> getEstateLoanBalances(LocalDate asOf) {
         List<String> loanTypes = List.of("credit-card - Peoples", "credit-card - Sampath", "Loan-mom", "Loan-other");
         return loanTypes.stream()
                 .map(loanType -> {
                     List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanTypeOrderByCreatedAtAsc(loanType);
-                    BigDecimal balance = transactions.isEmpty() ? BigDecimal.ZERO
-                            : transactions.get(transactions.size() - 1).getNewAmount();
+                    BigDecimal balance = BigDecimal.ZERO;
+                    for (EstateLoanTransaction t : transactions) {
+                        if (asOf != null && t.getCreatedAt().toLocalDate().isAfter(asOf)) {
+                            break;
+                        }
+                        balance = t.getNewAmount();
+                    }
                     return EstateLoanBalanceResponse.builder()
                             .loanType(loanType)
                             .balance(balance)
@@ -496,8 +526,8 @@ public class FinanceService {
                 .build();
     }
 
-    public SalesSummaryResponse getSalesSummary() {
-        Object[] row = salesLedgerRepository.sumByPaidStatus();
+    public SalesSummaryResponse getSalesSummary(LocalDate from, LocalDate to) {
+        Object[] row = salesLedgerRepository.sumByPaidStatus(from, to);
         BigDecimal received = (BigDecimal) row[0];
         BigDecimal pending = (BigDecimal) row[1];
         return SalesSummaryResponse.builder()
@@ -507,8 +537,8 @@ public class FinanceService {
                 .build();
     }
 
-    public List<CategoryTotalResponse> getSalesDistribution() {
-        return salesLedgerRepository.sumByCategory().stream()
+    public List<CategoryTotalResponse> getSalesDistribution(LocalDate from, LocalDate to) {
+        return salesLedgerRepository.sumByCategory(from, to).stream()
                 .map(r -> CategoryTotalResponse.builder().category((String) r[0]).total((BigDecimal) r[1]).build())
                 .collect(Collectors.toList());
     }
@@ -702,8 +732,8 @@ public class FinanceService {
         }
     }
 
-    public ExpenseSummaryResponse getExpenseSummary() {
-        List<Expense> all = expenseRepository.findAll();
+    public ExpenseSummaryResponse getExpenseSummary(LocalDate from, LocalDate to) {
+        List<Expense> all = findExpensesInRange(from, to);
         BigDecimal paid = all.stream().filter(Expense::getIsPaid).map(Expense::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal pending = all.stream().filter(e -> !e.getIsPaid()).map(Expense::getAmount)
@@ -715,12 +745,21 @@ public class FinanceService {
                 .build();
     }
 
-    public List<CategoryTotalResponse> getExpenseDistribution() {
-        return expenseRepository.findAll().stream()
+    public List<CategoryTotalResponse> getExpenseDistribution(LocalDate from, LocalDate to) {
+        return findExpensesInRange(from, to).stream()
                 .collect(Collectors.groupingBy(Expense::getType, Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)))
                 .entrySet().stream()
                 .map(e -> CategoryTotalResponse.builder().category(e.getKey()).total(e.getValue()).build())
                 .collect(Collectors.toList());
+    }
+
+    private List<Expense> findExpensesInRange(LocalDate from, LocalDate to) {
+        if (from == null && to == null) {
+            return expenseRepository.findAll();
+        }
+        return expenseRepository.findAll(expenseSpec(null, null,
+                from != null ? from.atStartOfDay() : null,
+                to != null ? to.atTime(23, 59, 59) : null));
     }
 
     public List<TrendPointResponse> getExpenseTrend(String scale) {

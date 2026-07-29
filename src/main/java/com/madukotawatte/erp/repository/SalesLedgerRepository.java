@@ -82,40 +82,57 @@ public class SalesLedgerRepository {
         query.setParameter("to", to);
     }
 
+    /** Category totals, optionally scoped to [from,to] (either or both may be null for all-time). */
     @SuppressWarnings("unchecked")
-    public List<Object[]> sumByCategory() {
+    public List<Object[]> sumByCategory(LocalDate from, LocalDate to) {
         Query query = entityManager.createNativeQuery("""
                 SELECT 'latex', COALESCE(SUM(total_amount), 0) FROM sales_latex
+                WHERE (CAST(:from AS date) IS NULL OR CAST(created_at AS date) >= CAST(:from AS date))
+                  AND (CAST(:to AS date) IS NULL OR CAST(created_at AS date) <= CAST(:to AS date))
                 UNION ALL
                 SELECT 'rubber-solid', COALESCE(SUM(mass * unit_price), 0) FROM sales_rubber_solid
+                WHERE (CAST(:from AS date) IS NULL OR sale_date >= CAST(:from AS date))
+                  AND (CAST(:to AS date) IS NULL OR sale_date <= CAST(:to AS date))
                 UNION ALL
                 SELECT 'manioc', COALESCE(SUM(mass * unit_price), 0) FROM sales_manioc
+                WHERE (CAST(:from AS date) IS NULL OR sale_date >= CAST(:from AS date))
+                  AND (CAST(:to AS date) IS NULL OR sale_date <= CAST(:to AS date))
                 UNION ALL
                 SELECT 'coconut', COALESCE(SUM(mass * unit_price), 0) FROM sales_coconut
+                WHERE (CAST(:from AS date) IS NULL OR sale_date >= CAST(:from AS date))
+                  AND (CAST(:to AS date) IS NULL OR sale_date <= CAST(:to AS date))
                 UNION ALL
                 SELECT 'banana', COALESCE(SUM(mass * unit_price), 0) FROM sales_banana
+                WHERE (CAST(:from AS date) IS NULL OR sale_date >= CAST(:from AS date))
+                  AND (CAST(:to AS date) IS NULL OR sale_date <= CAST(:to AS date))
                 """);
+        query.setParameter("from", from);
+        query.setParameter("to", to);
         return query.getResultList();
     }
 
-    /** Returns a single row: [receivedTotal, pendingTotal]. */
-    public Object[] sumByPaidStatus() {
+    /** Returns a single row: [receivedTotal, pendingTotal], optionally scoped to [from,to]. */
+    public Object[] sumByPaidStatus(LocalDate from, LocalDate to) {
         Query query = entityManager.createNativeQuery("""
                 SELECT
                     COALESCE(SUM(CASE WHEN paid THEN amount ELSE 0 END), 0) AS received,
                     COALESCE(SUM(CASE WHEN NOT paid THEN amount ELSE 0 END), 0) AS pending
                 FROM (
-                    SELECT total_amount AS amount, is_payment_received AS paid FROM sales_latex
+                    SELECT total_amount AS amount, is_payment_received AS paid, CAST(created_at AS date) AS d FROM sales_latex
                     UNION ALL
-                    SELECT mass * unit_price, is_paid FROM sales_rubber_solid
+                    SELECT mass * unit_price, is_paid, sale_date FROM sales_rubber_solid
                     UNION ALL
-                    SELECT mass * unit_price, is_paid FROM sales_manioc
+                    SELECT mass * unit_price, is_paid, sale_date FROM sales_manioc
                     UNION ALL
-                    SELECT mass * unit_price, is_paid FROM sales_coconut
+                    SELECT mass * unit_price, is_paid, sale_date FROM sales_coconut
                     UNION ALL
-                    SELECT mass * unit_price, is_paid FROM sales_banana
+                    SELECT mass * unit_price, is_paid, sale_date FROM sales_banana
                 ) t
+                WHERE (CAST(:from AS date) IS NULL OR d >= CAST(:from AS date))
+                  AND (CAST(:to AS date) IS NULL OR d <= CAST(:to AS date))
                 """);
+        query.setParameter("from", from);
+        query.setParameter("to", to);
         return (Object[]) query.getSingleResult();
     }
 

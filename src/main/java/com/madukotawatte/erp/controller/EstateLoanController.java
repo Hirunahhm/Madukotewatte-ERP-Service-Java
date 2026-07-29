@@ -31,8 +31,9 @@ public class EstateLoanController {
     private final FinanceService financeService;
 
     @GetMapping("/balances")
-    public ResponseEntity<List<EstateLoanBalanceResponse>> getEstateLoanBalances() {
-        return ResponseEntity.ok(financeService.getEstateLoanBalances());
+    public ResponseEntity<List<EstateLoanBalanceResponse>> getEstateLoanBalances(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
+        return ResponseEntity.ok(financeService.getEstateLoanBalances(asOf));
     }
 
     @GetMapping("/trend")

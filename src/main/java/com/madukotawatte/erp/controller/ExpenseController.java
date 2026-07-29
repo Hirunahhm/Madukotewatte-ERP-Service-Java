@@ -68,13 +68,17 @@ public class ExpenseController {
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<ExpenseSummaryResponse> getExpenseSummary() {
-        return ResponseEntity.ok(financeService.getExpenseSummary());
+    public ResponseEntity<ExpenseSummaryResponse> getExpenseSummary(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate to) {
+        return ResponseEntity.ok(financeService.getExpenseSummary(from, to));
     }
 
     @GetMapping("/distribution")
-    public ResponseEntity<List<CategoryTotalResponse>> getExpenseDistribution() {
-        return ResponseEntity.ok(financeService.getExpenseDistribution());
+    public ResponseEntity<List<CategoryTotalResponse>> getExpenseDistribution(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate to) {
+        return ResponseEntity.ok(financeService.getExpenseDistribution(from, to));
     }
 
     @GetMapping("/trend")
