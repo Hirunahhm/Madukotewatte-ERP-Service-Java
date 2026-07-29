@@ -8,14 +8,11 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class EstateLoanTransactionRequest {
+public class UpdateCreditCardLimitRequest {
     @NotBlank
     private String loanType;
 
-    @NotBlank
-    private String transactionType;
-
     @NotNull
     @Positive
-    private BigDecimal amount;
+    private BigDecimal creditLimit;
 }

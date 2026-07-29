@@ -6,17 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EstateLoanTransactionResponse {
-    private String id;
+public class CreditCardLimitResponse {
     private String loanType;
-    private String transactionType;
-    private BigDecimal lastAmount;
-    private BigDecimal newAmount;
-    private LocalDateTime createdAt;
+    private BigDecimal creditLimit;
+    private BigDecimal balance;
+    private BigDecimal availableCredit;
 }

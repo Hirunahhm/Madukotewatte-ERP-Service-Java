@@ -18,6 +18,10 @@ public class EstateLoanTransaction extends BaseEntity {
     @Column(name = "loan_type", length = 30)
     private String loanType;
 
+    // 'borrow' | 'repay'
+    @Column(name = "transaction_type", length = 10)
+    private String transactionType;
+
     @Column(name = "last_amount", precision = 15, scale = 2)
     private BigDecimal lastAmount;
 

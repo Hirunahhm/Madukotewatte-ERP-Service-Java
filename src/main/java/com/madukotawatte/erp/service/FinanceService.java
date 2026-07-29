@@ -6,6 +6,10 @@ import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse
 import com.madukotawatte.erp.dto.estateloan.EstateLoanBalanceResponse;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanTransactionRequest;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanTransactionResponse;
+import com.madukotawatte.erp.dto.estateloan.CreditCardLimitResponse;
+import com.madukotawatte.erp.dto.estateloan.CreditCardStatementResponse;
+import com.madukotawatte.erp.entity.CreditCardLimit;
+import com.madukotawatte.erp.repository.CreditCardLimitRepository;
 import com.madukotawatte.erp.dto.expense.ExpenseMarkPaidRequest;
 import com.madukotawatte.erp.dto.expense.ExpenseRequest;
 import com.madukotawatte.erp.dto.expense.ExpenseResponse;
@@ -37,6 +41,8 @@ import com.madukotawatte.erp.mapper.*;
 import com.madukotawatte.erp.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import com.madukotawatte.erp.dto.estateloan.UpdateCreditCardLimitRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +64,7 @@ public class FinanceService {
 
     private final MonetaryAssetTransactionRepository monetaryAssetTransactionRepository;
     private final EstateLoanTransactionRepository estateLoanTransactionRepository;
+    private final CreditCardLimitRepository creditCardLimitRepository;
     private final SalesLatexRepository salesLatexRepository;
     private final SalesRubberSolidRepository salesRubberSolidRepository;
     private final SalesManiocRepository salesManiocRepository;
@@ -82,7 +89,7 @@ public class FinanceService {
 
     @Transactional
     public MonetaryAssetTransactionResponse createMonetaryTransaction(MonetaryAssetTransactionRequest request) {
-        List<MonetaryAssetTransaction> existing = monetaryAssetTransactionRepository.findByAssetType(request.getAssetType());
+        List<MonetaryAssetTransaction> existing = monetaryAssetTransactionRepository.findByAssetTypeOrderByCreatedAtAsc(request.getAssetType());
         BigDecimal lastAmount = BigDecimal.ZERO;
         if (!existing.isEmpty()) {
             lastAmount = existing.get(existing.size() - 1).getNewAmount();
@@ -111,8 +118,10 @@ public class FinanceService {
         return MonetaryAssetMapper.toResponse(monetaryAssetTransactionRepository.save(transaction));
     }
 
-    public PageResponse<MonetaryAssetTransactionResponse> getAllMonetaryTransactions(Pageable pageable) {
-        return PageResponse.from(monetaryAssetTransactionRepository.findAll(pageable)
+    public PageResponse<MonetaryAssetTransactionResponse> getAllMonetaryTransactions(
+            String assetType, String transactionType, LocalDate from, LocalDate to, Pageable pageable) {
+        return PageResponse.from(monetaryAssetTransactionRepository
+                .findAll(monetarySpec(assetType, transactionType, from, to), pageable)
                 .map(MonetaryAssetMapper::toResponse));
     }
 
@@ -122,12 +131,31 @@ public class FinanceService {
         return MonetaryAssetMapper.toResponse(transaction);
     }
 
+    private Specification<MonetaryAssetTransaction> monetarySpec(String assetType, String transactionType, LocalDate from, LocalDate to) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            if (assetType != null && !assetType.isBlank()) {
+                predicates.add(cb.equal(root.get("assetType"), assetType));
+            }
+            if (transactionType != null && !transactionType.isBlank()) {
+                predicates.add(cb.equal(root.get("transactionType"), transactionType));
+            }
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to.atTime(23, 59, 59)));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+
     // ── Estate Loans ────────────────────────────────────────────
     public List<EstateLoanBalanceResponse> getEstateLoanBalances() {
         List<String> loanTypes = List.of("credit-card - Peoples", "credit-card - Sampath", "Loan-mom", "Loan-other");
         return loanTypes.stream()
                 .map(loanType -> {
-                    List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanType(loanType);
+                    List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanTypeOrderByCreatedAtAsc(loanType);
                     BigDecimal balance = transactions.isEmpty() ? BigDecimal.ZERO
                             : transactions.get(transactions.size() - 1).getNewAmount();
                     return EstateLoanBalanceResponse.builder()
@@ -140,24 +168,39 @@ public class FinanceService {
 
     @Transactional
     public EstateLoanTransactionResponse createEstateLoanTransaction(EstateLoanTransactionRequest request) {
-        List<EstateLoanTransaction> existing = estateLoanTransactionRepository.findByLoanType(request.getLoanType());
+        List<EstateLoanTransaction> existing = estateLoanTransactionRepository.findByLoanTypeOrderByCreatedAtAsc(request.getLoanType());
         BigDecimal lastAmount = BigDecimal.ZERO;
         if (!existing.isEmpty()) {
             lastAmount = existing.get(existing.size() - 1).getNewAmount();
         }
-        BigDecimal newAmount = lastAmount.add(request.getAmount());
+
+        BigDecimal newAmount;
+        if ("borrow".equals(request.getTransactionType())) {
+            newAmount = lastAmount.add(request.getAmount());
+        } else if ("repay".equals(request.getTransactionType())) {
+            newAmount = lastAmount.subtract(request.getAmount());
+        } else {
+            throw new BadRequestException("Invalid transaction type: " + request.getTransactionType());
+        }
+
+        if (newAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new InsufficientFundsException("Repayment exceeds outstanding balance on " + request.getLoanType());
+        }
 
         EstateLoanTransaction transaction = new EstateLoanTransaction();
         transaction.setId(UUID.randomUUID().toString());
         transaction.setLoanType(request.getLoanType());
+        transaction.setTransactionType(request.getTransactionType());
         transaction.setLastAmount(lastAmount);
         transaction.setNewAmount(newAmount);
 
         return EstateLoanMapper.toResponse(estateLoanTransactionRepository.save(transaction));
     }
 
-    public PageResponse<EstateLoanTransactionResponse> getAllEstateLoanTransactions(Pageable pageable) {
-        return PageResponse.from(estateLoanTransactionRepository.findAll(pageable)
+    public PageResponse<EstateLoanTransactionResponse> getAllEstateLoanTransactions(
+            String loanType, String transactionType, LocalDate from, LocalDate to, Pageable pageable) {
+        return PageResponse.from(estateLoanTransactionRepository
+                .findAll(loanSpec(loanType, transactionType, from, to), pageable)
                 .map(EstateLoanMapper::toResponse));
     }
 
@@ -165,6 +208,111 @@ public class FinanceService {
         EstateLoanTransaction transaction = estateLoanTransactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("EstateLoanTransaction", "id", id));
         return EstateLoanMapper.toResponse(transaction);
+    }
+
+    private Specification<EstateLoanTransaction> loanSpec(String loanType, String transactionType, LocalDate from, LocalDate to) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            if (loanType != null && !loanType.isBlank()) {
+                predicates.add(cb.equal(root.get("loanType"), loanType));
+            }
+            if (transactionType != null && !transactionType.isBlank()) {
+                predicates.add(cb.equal(root.get("transactionType"), transactionType));
+            }
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to.atTime(23, 59, 59)));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+
+    private static final List<String> CREDIT_CARD_TYPES = List.of("credit-card - Peoples", "credit-card - Sampath");
+
+    public CreditCardStatementResponse getCreditCardStatement(String loanType, LocalDate from, LocalDate to) {
+        if (!CREDIT_CARD_TYPES.contains(loanType)) {
+            throw new BadRequestException("Not a credit card loan type: " + loanType);
+        }
+        List<EstateLoanTransaction> inRange = estateLoanTransactionRepository.findAll(
+                loanSpec(loanType, null, from, to),
+                Sort.by(Sort.Direction.ASC, "createdAt"));
+
+        BigDecimal openingBalance = BigDecimal.ZERO;
+        java.time.LocalDateTime fromStart = from.atStartOfDay();
+        for (Object[] row : estateLoanTransactionRepository.findOrderedByCreatedAtForLoanType(loanType)) {
+            java.time.LocalDateTime createdAt = (java.time.LocalDateTime) row[1];
+            if (createdAt.isBefore(fromStart)) {
+                openingBalance = (BigDecimal) row[2];
+            } else {
+                break;
+            }
+        }
+
+        BigDecimal totalCharges = BigDecimal.ZERO;
+        BigDecimal totalPayments = BigDecimal.ZERO;
+        for (EstateLoanTransaction tx : inRange) {
+            BigDecimal delta = tx.getNewAmount().subtract(tx.getLastAmount()).abs();
+            if ("borrow".equals(tx.getTransactionType())) {
+                totalCharges = totalCharges.add(delta);
+            } else if ("repay".equals(tx.getTransactionType())) {
+                totalPayments = totalPayments.add(delta);
+            }
+        }
+
+        return CreditCardStatementResponse.builder()
+                .loanType(loanType)
+                .from(from)
+                .to(to)
+                .openingBalance(openingBalance)
+                .totalCharges(totalCharges)
+                .totalPayments(totalPayments)
+                .closingBalance(openingBalance.add(totalCharges).subtract(totalPayments))
+                .transactions(inRange.stream().map(EstateLoanMapper::toResponse).collect(Collectors.toList()))
+                .build();
+    }
+
+    public List<CreditCardLimitResponse> getCreditCardLimits() {
+        Map<String, BigDecimal> balances = getEstateLoanBalances().stream()
+                .collect(Collectors.toMap(EstateLoanBalanceResponse::getLoanType, EstateLoanBalanceResponse::getBalance));
+        return CREDIT_CARD_TYPES.stream()
+                .map(type -> {
+                    BigDecimal limit = creditCardLimitRepository.findById(type)
+                            .map(CreditCardLimit::getCreditLimit)
+                            .orElse(BigDecimal.ZERO);
+                    BigDecimal balance = balances.getOrDefault(type, BigDecimal.ZERO);
+                    return CreditCardLimitResponse.builder()
+                            .loanType(type)
+                            .creditLimit(limit)
+                            .balance(balance)
+                            .availableCredit(limit.subtract(balance))
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CreditCardLimitResponse updateCreditCardLimit(UpdateCreditCardLimitRequest request) {
+        if (!CREDIT_CARD_TYPES.contains(request.getLoanType())) {
+            throw new BadRequestException("Not a credit card loan type: " + request.getLoanType());
+        }
+        CreditCardLimit limit = creditCardLimitRepository.findById(request.getLoanType())
+                .orElse(CreditCardLimit.builder().loanType(request.getLoanType()).build());
+        limit.setCreditLimit(request.getCreditLimit());
+        creditCardLimitRepository.save(limit);
+
+        BigDecimal balance = getEstateLoanBalances().stream()
+                .filter(b -> b.getLoanType().equals(request.getLoanType()))
+                .map(EstateLoanBalanceResponse::getBalance)
+                .findFirst().orElse(BigDecimal.ZERO);
+
+        return CreditCardLimitResponse.builder()
+                .loanType(request.getLoanType())
+                .creditLimit(request.getCreditLimit())
+                .balance(balance)
+                .availableCredit(request.getCreditLimit().subtract(balance))
+                .build();
     }
 
     // ── Sales Latex ─────────────────────────────────────────────
@@ -416,6 +564,60 @@ public class FinanceService {
         if (value instanceof java.sql.Date sqlDate) return sqlDate.toLocalDate();
         if (value instanceof java.sql.Timestamp timestamp) return timestamp.toLocalDateTime().toLocalDate();
         throw new IllegalStateException("Unexpected date type: " + value.getClass());
+    }
+
+    // Running-balance trend: rows are (type, createdAt, newAmount) across ALL time (not just the window),
+    // ordered by createdAt ascending, so the balance carried into the window's first bucket is correct.
+    private List<TrendPointResponse> bucketBalanceTrend(String scale, TrendWindow window, List<Object[]> orderedRows) {
+        List<String> labels = switch (scale) {
+            case "week" -> List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
+            case "year" -> List.of("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
+            default -> List.of("W1", "W2", "W3", "W4");
+        };
+        List<LocalDate> boundaries = bucketEndDates(scale, window);
+
+        Map<String, BigDecimal> currentBalance = new java.util.HashMap<>();
+        int idx = 0;
+        List<TrendPointResponse> points = new java.util.ArrayList<>();
+        for (int i = 0; i < labels.size(); i++) {
+            java.time.LocalDateTime cutoff = boundaries.get(i).atTime(23, 59, 59);
+            while (idx < orderedRows.size()) {
+                Object[] row = orderedRows.get(idx);
+                java.time.LocalDateTime createdAt = (java.time.LocalDateTime) row[1];
+                if (createdAt.isAfter(cutoff)) break;
+                currentBalance.put((String) row[0], (BigDecimal) row[2]);
+                idx++;
+            }
+            BigDecimal total = currentBalance.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            points.add(TrendPointResponse.builder().name(labels.get(i)).total(total).build());
+        }
+        return points;
+    }
+
+    private List<LocalDate> bucketEndDates(String scale, TrendWindow window) {
+        return switch (scale) {
+            case "week" -> java.util.stream.IntStream.range(0, 7)
+                    .mapToObj(window.from()::plusDays)
+                    .collect(Collectors.toList());
+            case "year" -> java.util.stream.IntStream.rangeClosed(1, 12)
+                    .mapToObj(m -> LocalDate.of(window.from().getYear(), m, 1).plusMonths(1).minusDays(1))
+                    .collect(Collectors.toList());
+            default -> List.of(
+                    window.from().plusDays(6),
+                    window.from().plusDays(13),
+                    window.from().plusDays(20),
+                    window.to());
+        };
+    }
+
+    public List<TrendPointResponse> getAssetBalanceTrend(String scale) {
+        TrendWindow window = resolveTrendWindow(scale);
+        return bucketBalanceTrend(scale, window, monetaryAssetTransactionRepository.findAllOrderedByCreatedAt());
+    }
+
+    public List<TrendPointResponse> getLoanBalanceTrend(String scale) {
+        TrendWindow window = resolveTrendWindow(scale);
+        return bucketBalanceTrend(scale, window, estateLoanTransactionRepository.findAllOrderedByCreatedAt());
     }
 
     // ── Expenses ────────────────────────────────────────────────

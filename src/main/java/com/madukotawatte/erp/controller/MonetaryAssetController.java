@@ -8,12 +8,15 @@ import com.madukotawatte.erp.service.FinanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -29,6 +32,12 @@ public class MonetaryAssetController {
         return ResponseEntity.ok(financeService.getAssetBalances());
     }
 
+    @GetMapping("/trend")
+    public ResponseEntity<List<com.madukotawatte.erp.dto.finance.TrendPointResponse>> getAssetBalanceTrend(
+            @RequestParam(defaultValue = "month") String scale) {
+        return ResponseEntity.ok(financeService.getAssetBalanceTrend(scale));
+    }
+
     @PostMapping("/transactions")
     public ResponseEntity<MonetaryAssetTransactionResponse> createTransaction(
             @Valid @RequestBody MonetaryAssetTransactionRequest request) {
@@ -37,8 +46,12 @@ public class MonetaryAssetController {
 
     @GetMapping("/transactions")
     public ResponseEntity<PageResponse<MonetaryAssetTransactionResponse>> getAllTransactions(
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getAllMonetaryTransactions(pageable));
+            @RequestParam(required = false) String assetType,
+            @RequestParam(required = false) String transactionType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(financeService.getAllMonetaryTransactions(assetType, transactionType, from, to, pageable));
     }
 
     @GetMapping("/transactions/{id}")
