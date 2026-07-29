@@ -13,7 +13,6 @@ public class ExpenseRequest {
     @NotBlank
     private String type;
 
-    @NotBlank
     private String paymentType;
 
     @NotNull
@@ -25,4 +24,6 @@ public class ExpenseRequest {
 
     private String monetaryTransactionId;
     private String estateLoanTransactionId;
+
+    private Boolean isPaid = true;
 }

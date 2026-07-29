@@ -1,8 +1,12 @@
 package com.madukotawatte.erp.controller;
 
 import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.expense.ExpenseMarkPaidRequest;
 import com.madukotawatte.erp.dto.expense.ExpenseRequest;
 import com.madukotawatte.erp.dto.expense.ExpenseResponse;
+import com.madukotawatte.erp.dto.finance.CategoryTotalResponse;
+import com.madukotawatte.erp.dto.finance.ExpenseSummaryResponse;
+import com.madukotawatte.erp.dto.finance.TrendPointResponse;
 import com.madukotawatte.erp.service.FinanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/expenses")
@@ -36,15 +41,45 @@ public class ExpenseController {
 
     @GetMapping
     public ResponseEntity<PageResponse<ExpenseResponse>> getAllExpenses(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Boolean isPaid,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getAllExpenses(pageable));
+        return ResponseEntity.ok(financeService.getAllExpenses(type, isPaid, from, to, pageable));
     }
 
-    @GetMapping("/range")
-    public ResponseEntity<PageResponse<ExpenseResponse>> getExpensesByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getExpensesByDateRange(from, to, pageable));
+    @PutMapping("/{id}")
+    public ResponseEntity<ExpenseResponse> updateExpense(
+            @PathVariable String id, @Valid @RequestBody ExpenseRequest request) {
+        return ResponseEntity.ok(financeService.updateExpense(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteExpense(@PathVariable String id) {
+        financeService.deleteExpense(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/payment")
+    public ResponseEntity<ExpenseResponse> markExpensePaid(
+            @PathVariable String id, @Valid @RequestBody ExpenseMarkPaidRequest request) {
+        return ResponseEntity.ok(financeService.markExpensePaid(id, request));
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<ExpenseSummaryResponse> getExpenseSummary() {
+        return ResponseEntity.ok(financeService.getExpenseSummary());
+    }
+
+    @GetMapping("/distribution")
+    public ResponseEntity<List<CategoryTotalResponse>> getExpenseDistribution() {
+        return ResponseEntity.ok(financeService.getExpenseDistribution());
+    }
+
+    @GetMapping("/trend")
+    public ResponseEntity<List<TrendPointResponse>> getExpenseTrend(
+            @RequestParam(defaultValue = "month") String scale) {
+        return ResponseEntity.ok(financeService.getExpenseTrend(scale));
     }
 }

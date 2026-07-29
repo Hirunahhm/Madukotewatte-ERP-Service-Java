@@ -32,6 +32,7 @@ public class SalesCoconutMapper {
                 .saleDate(sale.getSaleDate())
                 .mass(sale.getMass())
                 .unitPrice(sale.getUnitPrice())
+                .totalAmount(sale.getMass().multiply(sale.getUnitPrice()))
                 .isPaid(sale.getIsPaid())
                 .status(sale.getStatus())
                 .paymentType(sale.getPaymentType())

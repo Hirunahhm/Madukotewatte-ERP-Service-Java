@@ -7,22 +7,17 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SalesRubberSolidResponse {
+public class SalesLedgerRowResponse {
     private String saleId;
+    private String category;
     private String loadId;
     private LocalDate saleDate;
-    private BigDecimal mass;
-    private BigDecimal unitPrice;
-    private BigDecimal totalAmount;
-    private Boolean isPaid;
+    private BigDecimal amount;
     private String status;
     private String paymentType;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

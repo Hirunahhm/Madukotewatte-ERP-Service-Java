@@ -20,6 +20,7 @@ public class SalesManiocResponse {
     private LocalDate saleDate;
     private BigDecimal mass;
     private BigDecimal unitPrice;
+    private BigDecimal totalAmount;
     private Boolean isPaid;
     private String status;
     private String paymentType;

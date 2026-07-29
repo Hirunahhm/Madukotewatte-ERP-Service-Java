@@ -18,8 +18,8 @@ public class Expense extends BaseEntity {
     @Column(length = 100)
     private String type;
 
-    // 'Credit Card-Peoples' | 'Cash' | 'Bank Transfer-BOC' | etc.
-    @Column(name = "payment_type", length = 40, nullable = false)
+    // 'Credit Card-Peoples' | 'Cash' | 'Bank Transfer-BOC' | etc. — null until the expense is marked paid
+    @Column(name = "payment_type", length = 40)
     private String paymentType;
 
     @Column(precision = 15, scale = 2)
@@ -34,4 +34,10 @@ public class Expense extends BaseEntity {
     private EstateLoanTransaction estateLoanTransaction;
 
     private LocalDateTime timestamp;
+
+    @Column(name = "is_paid", nullable = false)
+    private Boolean isPaid = true;
+
+    @Column(nullable = false, length = 20)
+    private String status = "paid";
 }

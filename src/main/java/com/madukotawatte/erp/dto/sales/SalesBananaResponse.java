@@ -13,9 +13,10 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SalesRubberSolidResponse {
+public class SalesBananaResponse {
     private String saleId;
     private String loadId;
+    private String type;
     private LocalDate saleDate;
     private BigDecimal mass;
     private BigDecimal unitPrice;

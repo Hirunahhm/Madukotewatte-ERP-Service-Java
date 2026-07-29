@@ -1,19 +1,20 @@
 package com.madukotawatte.erp.mapper;
 
-import com.madukotawatte.erp.dto.sales.SalesRubberSolidRequest;
-import com.madukotawatte.erp.dto.sales.SalesRubberSolidResponse;
+import com.madukotawatte.erp.dto.sales.SalesBananaRequest;
+import com.madukotawatte.erp.dto.sales.SalesBananaResponse;
 import com.madukotawatte.erp.entity.Load;
-import com.madukotawatte.erp.entity.SalesRubberSolid;
+import com.madukotawatte.erp.entity.SalesBanana;
 
 import java.util.UUID;
 
-public class SalesRubberSolidMapper {
-    private SalesRubberSolidMapper() {}
+public class SalesBananaMapper {
+    private SalesBananaMapper() {}
 
-    public static SalesRubberSolid toEntity(SalesRubberSolidRequest request, Load load) {
-        SalesRubberSolid sale = new SalesRubberSolid();
+    public static SalesBanana toEntity(SalesBananaRequest request, Load load) {
+        SalesBanana sale = new SalesBanana();
         sale.setSaleId(UUID.randomUUID().toString());
         sale.setLoad(load);
+        sale.setType(request.getType());
         sale.setSaleDate(request.getSaleDate());
         sale.setMass(request.getMass());
         sale.setUnitPrice(request.getUnitPrice());
@@ -23,10 +24,11 @@ public class SalesRubberSolidMapper {
         return sale;
     }
 
-    public static SalesRubberSolidResponse toResponse(SalesRubberSolid sale) {
-        return SalesRubberSolidResponse.builder()
+    public static SalesBananaResponse toResponse(SalesBanana sale) {
+        return SalesBananaResponse.builder()
                 .saleId(sale.getSaleId())
                 .loadId(sale.getLoad().getLoadId())
+                .type(sale.getType())
                 .saleDate(sale.getSaleDate())
                 .mass(sale.getMass())
                 .unitPrice(sale.getUnitPrice())
