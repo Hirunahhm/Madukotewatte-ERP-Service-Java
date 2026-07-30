@@ -34,6 +34,7 @@ public class DashboardController {
     }
 
     @GetMapping("/payroll")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<MonthlyPayrollResponse> getMonthlyPayroll(
             @RequestParam int month, @RequestParam int year) {
         return ResponseEntity.ok(dashboardService.getMonthlyPayroll(month, year));

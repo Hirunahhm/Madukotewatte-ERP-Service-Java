@@ -53,7 +53,7 @@ public class DashboardService {
         List<String> loanTypes = List.of("credit-card - Peoples", "credit-card - Sampath", "Loan-mom", "Loan-other");
         List<EstateLoanBalanceResponse> loanBalances = loanTypes.stream()
                 .map(loanType -> {
-                    List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanType(loanType);
+                    List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanTypeOrderByCreatedAtAsc(loanType);
                     BigDecimal balance = transactions.isEmpty() ? BigDecimal.ZERO
                             : transactions.get(transactions.size() - 1).getNewAmount();
                     return EstateLoanBalanceResponse.builder()

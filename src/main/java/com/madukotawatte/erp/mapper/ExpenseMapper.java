@@ -15,6 +15,8 @@ public class ExpenseMapper {
                 .timestamp(expense.getTimestamp())
                 .monetaryTransactionId(expense.getTransaction() != null ? expense.getTransaction().getId() : null)
                 .estateLoanTransactionId(expense.getEstateLoanTransaction() != null ? expense.getEstateLoanTransaction().getId() : null)
+                .isPaid(expense.getIsPaid())
+                .status(expense.getStatus())
                 .createdAt(expense.getCreatedAt())
                 .build();
     }

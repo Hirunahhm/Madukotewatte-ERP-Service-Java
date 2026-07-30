@@ -11,6 +11,8 @@ public class AttendanceRequest {
     @NotBlank
     private String employeeId;
 
+    private String calendarId;
+
     @NotNull
     private LocalDateTime timestamp;
 

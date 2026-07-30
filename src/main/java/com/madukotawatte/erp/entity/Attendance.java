@@ -18,12 +18,16 @@ public class Attendance extends BaseEntity {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "calendar_id")
+    private Calendar calendar;
+
     private LocalDateTime timestamp;
 
     @Column(name = "no_of_trees")
     private Integer noOfTrees;
 
-    // 'none' | 'rain' | 'ill' | 'no_loads' | 'holiday'
-    @Column(name = "no_work", length = 10)
+    // 'none' | 'rain' | 'sick' | 'other' | 'public_holiday' | 'funeral' | 'family_matter' | 'kids'
+    @Column(name = "no_work", length = 20)
     private String noWork = "none";
 }

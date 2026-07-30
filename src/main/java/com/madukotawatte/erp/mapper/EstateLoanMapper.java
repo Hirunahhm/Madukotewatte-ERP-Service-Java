@@ -10,6 +10,7 @@ public class EstateLoanMapper {
         return EstateLoanTransactionResponse.builder()
                 .id(transaction.getId())
                 .loanType(transaction.getLoanType())
+                .transactionType(transaction.getTransactionType())
                 .lastAmount(transaction.getLastAmount())
                 .newAmount(transaction.getNewAmount())
                 .createdAt(transaction.getCreatedAt())

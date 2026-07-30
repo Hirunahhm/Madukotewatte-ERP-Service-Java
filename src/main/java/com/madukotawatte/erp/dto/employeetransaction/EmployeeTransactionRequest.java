@@ -16,6 +16,8 @@ public class EmployeeTransactionRequest {
     @NotBlank
     private String type;
 
+    private String paymentType;
+
     @NotNull
     @Positive
     private BigDecimal amount;

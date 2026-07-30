@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 public class EstateLoanTransactionResponse {
     private String id;
     private String loanType;
+    private String transactionType;
     private BigDecimal lastAmount;
     private BigDecimal newAmount;
     private LocalDateTime createdAt;

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "rubber_solid_records")
@@ -20,4 +21,6 @@ public class RubberSolidRecord extends BaseEntity {
 
     @Column(name = "mass_kg", precision = 10, scale = 2)
     private BigDecimal massKg;
+
+    private LocalDateTime timestamp;
 }

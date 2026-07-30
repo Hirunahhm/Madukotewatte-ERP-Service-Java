@@ -2,10 +2,13 @@ package com.madukotawatte.erp.controller;
 
 import com.madukotawatte.erp.dto.attendance.AttendanceResponse;
 import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.employee.EmployeeAttendanceStatsResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeRequest;
 import com.madukotawatte.erp.dto.employee.EmployeeResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeSummaryResponse;
+import com.madukotawatte.erp.dto.employee.PaymentSummaryResponse;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
+import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionStatsResponse;
 import com.madukotawatte.erp.service.WorkforceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,12 @@ public class EmployeeController {
         return ResponseEntity.ok(workforceService.getAllEmployeesSummary());
     }
 
+    @GetMapping("/payment-summary")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<PaymentSummaryResponse> getPaymentSummary() {
+        return ResponseEntity.ok(workforceService.getPaymentSummary());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<EmployeeResponse> getEmployee(@PathVariable String id) {
@@ -70,8 +79,21 @@ public class EmployeeController {
     @GetMapping("/{id}/attendance")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<PageResponse<AttendanceResponse>> getEmployeeAttendance(
-            @PathVariable String id, @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(workforceService.getEmployeeAttendance(id, pageable));
+            @PathVariable String id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(workforceService.getEmployeeAttendance(id, from, to, status, pageable));
+    }
+
+    @GetMapping("/{id}/attendance/stats")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<EmployeeAttendanceStatsResponse> getEmployeeAttendanceStats(
+            @PathVariable String id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        return ResponseEntity.ok(workforceService.getEmployeeAttendanceStats(id, from, to));
     }
 
     @GetMapping("/{id}/attendance/range")
@@ -85,7 +107,21 @@ public class EmployeeController {
 
     @GetMapping("/{id}/transactions")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
-    public ResponseEntity<List<EmployeeTransactionResponse>> getEmployeeTransactions(@PathVariable String id) {
-        return ResponseEntity.ok(workforceService.getEmployeeTransactions(id));
+    public ResponseEntity<PageResponse<EmployeeTransactionResponse>> getEmployeeTransactionsPaged(
+            @PathVariable String id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String type,
+            @PageableDefault(size = 20, sort = "timestamp", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(workforceService.getEmployeeTransactionsPaged(id, from, to, type, pageable));
+    }
+
+    @GetMapping("/{id}/transactions/stats")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<EmployeeTransactionStatsResponse> getEmployeeTransactionStats(
+            @PathVariable String id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        return ResponseEntity.ok(workforceService.getEmployeeTransactionStats(id, from, to));
     }
 }

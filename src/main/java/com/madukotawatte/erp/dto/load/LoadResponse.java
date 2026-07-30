@@ -16,6 +16,7 @@ public class LoadResponse {
     private String loadType;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
+    private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

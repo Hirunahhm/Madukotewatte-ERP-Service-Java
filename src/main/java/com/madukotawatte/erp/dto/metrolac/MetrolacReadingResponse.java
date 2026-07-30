@@ -16,6 +16,7 @@ public class MetrolacReadingResponse {
     private String metrolacId;
     private String loadId;
     private BigDecimal temperature;
+    private BigDecimal reading;
     private LocalDateTime timestamp;
     private LocalDateTime createdAt;
 }

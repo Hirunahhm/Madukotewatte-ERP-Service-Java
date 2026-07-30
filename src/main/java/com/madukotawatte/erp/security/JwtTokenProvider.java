@@ -3,7 +3,6 @@ package com.madukotawatte.erp.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,12 +44,19 @@ public class JwtTokenProvider {
     }
 
     public String getUsernameFromToken(String token) {
-        Claims claims = Jwts.parser()
+        return getClaims(token).getSubject();
+    }
+
+    public String getRoleFromToken(String token) {
+        return getClaims(token).get("role", String.class);
+    }
+
+    private Claims getClaims(String token) {
+        return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-        return claims.getSubject();
     }
 
     public boolean validateToken(String token) {

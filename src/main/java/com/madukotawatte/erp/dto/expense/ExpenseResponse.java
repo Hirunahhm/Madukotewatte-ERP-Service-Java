@@ -20,5 +20,7 @@ public class ExpenseResponse {
     private LocalDateTime timestamp;
     private String monetaryTransactionId;
     private String estateLoanTransactionId;
+    private Boolean isPaid;
+    private String status;
     private LocalDateTime createdAt;
 }

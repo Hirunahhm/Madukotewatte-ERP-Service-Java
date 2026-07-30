@@ -19,8 +19,11 @@ public class AmmoniaRecord extends BaseEntity {
     @Column(length = 10)
     private String type;
 
-    @Column(precision = 10, scale = 2)
-    private BigDecimal litres;
+    @Column(name = "previous_amount", precision = 10, scale = 2)
+    private BigDecimal previousAmount;
+
+    @Column(name = "new_amount", precision = 10, scale = 2)
+    private BigDecimal newAmount;
 
     private LocalDateTime timestamp;
 }

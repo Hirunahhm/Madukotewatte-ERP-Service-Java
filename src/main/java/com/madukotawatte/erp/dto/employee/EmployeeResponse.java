@@ -19,6 +19,7 @@ public class EmployeeResponse {
     private LocalDate joinedDate;
     private BigDecimal salary;
     private String position;
+    private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

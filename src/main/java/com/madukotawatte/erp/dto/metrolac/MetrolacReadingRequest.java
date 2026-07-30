@@ -15,6 +15,8 @@ public class MetrolacReadingRequest {
     @NotNull
     private BigDecimal temperature;
 
+    private BigDecimal reading;
+
     @NotNull
     private LocalDateTime timestamp;
 }

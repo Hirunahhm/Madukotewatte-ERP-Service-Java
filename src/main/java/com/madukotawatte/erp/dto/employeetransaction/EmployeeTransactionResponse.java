@@ -17,6 +17,7 @@ public class EmployeeTransactionResponse {
     private String employeeId;
     private String employeeName;
     private String type;
+    private String paymentType;
     private BigDecimal amount;
     private LocalDateTime timestamp;
     private LocalDateTime createdAt;

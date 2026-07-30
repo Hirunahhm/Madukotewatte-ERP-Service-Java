@@ -15,7 +15,11 @@ public class AmmoniaRecordRequest {
 
     @NotNull
     @Positive
-    private BigDecimal litres;
+    private BigDecimal previousAmount;
+
+    @NotNull
+    @Positive
+    private BigDecimal newAmount;
 
     @NotNull
     private LocalDateTime timestamp;

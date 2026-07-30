@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class RubberSolidRecordRequest {
@@ -15,4 +16,7 @@ public class RubberSolidRecordRequest {
     @NotNull
     @Positive
     private BigDecimal massKg;
+
+    @NotNull
+    private LocalDateTime timestamp;
 }

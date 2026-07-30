@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
 public class AmmoniaRecordResponse {
     private String recordId;
     private String type;
-    private BigDecimal litres;
+    private BigDecimal previousAmount;
+    private BigDecimal newAmount;
     private LocalDateTime timestamp;
     private LocalDateTime createdAt;
 }
