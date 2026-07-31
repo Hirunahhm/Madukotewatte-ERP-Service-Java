@@ -1,0 +1,9 @@
+# Compose merges list fields (like `ports`) by concatenation, not replacement,
+# so a plain `ports: []` here would NOT remove the base file's published
+# ports — the `!reset` tag (Compose v2.24+) is required to actually clear them.
+services:
+  db:
+    ports: !reset []
+
+  app:
+    ports: !reset []
