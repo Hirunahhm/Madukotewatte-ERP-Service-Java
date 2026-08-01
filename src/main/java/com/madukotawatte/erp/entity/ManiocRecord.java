@@ -23,10 +23,6 @@ public class ManiocRecord extends BaseEntity {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_record_id")
-    private EmployeeTransaction employeeTransaction;
-
     // 'Kirikawadi' | 'MU-51' | 'Suranimala' | 'Ambakumbura' | 'CARI-555' | 'Other'
     @Column(length = 30)
     private String variety;

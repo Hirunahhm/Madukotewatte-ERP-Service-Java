@@ -19,7 +19,7 @@ public class EmployeeTransaction extends BaseEntity {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    // 'Manual_Labor' | 'Advance' | 'Loan_Payment' | 'Latex_Tap'
+    // 'Manual_Labor' | 'Advance' | 'Loan_Payment' | 'Latex_Tap' | 'Salary_Payment'
     @Column(length = 20)
     private String type;
 

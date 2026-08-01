@@ -1,6 +1,7 @@
 package com.madukotawatte.erp.controller;
 
 import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.employeetransaction.EmployeeSalaryPaymentRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
 import com.madukotawatte.erp.service.FinanceService;
@@ -25,6 +26,13 @@ public class EmployeeTransactionController {
     public ResponseEntity<EmployeeTransactionResponse> createTransaction(
             @Valid @RequestBody EmployeeTransactionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(financeService.createEmployeeTransaction(request));
+    }
+
+    @PostMapping("/salary-payment")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<EmployeeTransactionResponse> recordSalaryPayment(
+            @Valid @RequestBody EmployeeSalaryPaymentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.recordSalaryPayment(request));
     }
 
     @GetMapping("/{id}")

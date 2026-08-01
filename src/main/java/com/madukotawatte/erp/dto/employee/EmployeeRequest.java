@@ -16,17 +16,10 @@ public class EmployeeRequest {
     @NotNull
     private LocalDate joinedDate;
 
-    @NotNull
     @Positive
     private BigDecimal salary;
 
     private BigDecimal ratePerTree;
-
-    private BigDecimal ratePerBunch;
-
-    private BigDecimal ratePerNut;
-
-    private BigDecimal ratePerKgManioc;
 
     private String position;
 

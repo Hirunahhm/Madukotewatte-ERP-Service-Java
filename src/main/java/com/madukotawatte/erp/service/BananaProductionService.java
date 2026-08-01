@@ -8,13 +8,11 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.load.VolumeTrendResponse;
 import com.madukotawatte.erp.entity.BananaRecord;
 import com.madukotawatte.erp.entity.Employee;
-import com.madukotawatte.erp.entity.EmployeeTransaction;
 import com.madukotawatte.erp.entity.Load;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.BananaMapper;
 import com.madukotawatte.erp.repository.BananaRecordRepository;
 import com.madukotawatte.erp.repository.EmployeeRepository;
-import com.madukotawatte.erp.repository.EmployeeTransactionRepository;
 import com.madukotawatte.erp.repository.LoadRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +29,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,15 +38,12 @@ public class BananaProductionService {
     private final BananaRecordRepository bananaRecordRepository;
     private final LoadRepository loadRepository;
     private final EmployeeRepository employeeRepository;
-    private final EmployeeTransactionRepository employeeTransactionRepository;
 
     @Transactional
     public BananaRecordResponse createBananaRecord(BananaRecordRequest request) {
         Load load = findLoadById(request.getLoadId());
         Employee employee = findEmployeeById(request.getEmployeeId());
         BananaRecord record = BananaMapper.toEntity(request, load, employee);
-        record.setEmployeeTransaction(
-                createHarvestTransactionIfApplicable(employee, request.getBunchCount(), request.getTimestamp()));
         return BananaMapper.toResponse(bananaRecordRepository.save(record));
     }
 
@@ -88,10 +82,6 @@ public class BananaProductionService {
         record.setBunchCount(request.getBunchCount());
         record.setMassKg(request.getMassKg());
         record.setTimestamp(request.getTimestamp());
-        if (record.getEmployeeTransaction() == null) {
-            record.setEmployeeTransaction(
-                    createHarvestTransactionIfApplicable(employee, request.getBunchCount(), request.getTimestamp()));
-        }
         return BananaMapper.toResponse(bananaRecordRepository.save(record));
     }
 
@@ -177,21 +167,6 @@ public class BananaProductionService {
                         .recordCount(e.getValue().size())
                         .build())
                 .collect(Collectors.toList());
-    }
-
-    private EmployeeTransaction createHarvestTransactionIfApplicable(Employee employee, Integer bunchCount, LocalDateTime timestamp) {
-        if (bunchCount == null || bunchCount <= 0) return null;
-        BigDecimal ratePerBunch = employee.getRatePerBunch();
-        if (ratePerBunch == null || ratePerBunch.compareTo(BigDecimal.ZERO) <= 0) return null;
-
-        EmployeeTransaction transaction = EmployeeTransaction.builder()
-                .transactionRecordId(UUID.randomUUID().toString())
-                .employee(employee)
-                .type("Banana_Harvest")
-                .amount(ratePerBunch.multiply(BigDecimal.valueOf(bunchCount)))
-                .timestamp(timestamp)
-                .build();
-        return employeeTransactionRepository.save(transaction);
     }
 
     private BananaRecord findBananaRecordById(String id) {

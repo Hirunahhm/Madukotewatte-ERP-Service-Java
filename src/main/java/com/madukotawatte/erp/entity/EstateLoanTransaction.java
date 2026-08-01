@@ -14,9 +14,13 @@ public class EstateLoanTransaction extends BaseEntity {
     @Column(length = 36)
     private String id;
 
-    // 'credit-card - Peoples' | 'credit-card - Sampath' | 'Loan-mom' | 'Loan-other'
+    // Set for legacy fixed-bucket transactions: 'credit-card - Peoples' | 'credit-card - Sampath'
     @Column(name = "loan_type", length = 30)
     private String loanType;
+
+    // Set for named-loan transactions (see EstateLoan) — exactly one of loanType/loanId is set
+    @Column(name = "loan_id", length = 36)
+    private String loanId;
 
     // 'borrow' | 'repay'
     @Column(name = "transaction_type", length = 10)

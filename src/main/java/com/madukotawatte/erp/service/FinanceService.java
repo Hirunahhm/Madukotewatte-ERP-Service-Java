@@ -1,9 +1,13 @@
 package com.madukotawatte.erp.service;
 
 import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.employeetransaction.EmployeeSalaryPaymentRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanBalanceResponse;
+import com.madukotawatte.erp.dto.estateloan.EstateLoanPaymentRequest;
+import com.madukotawatte.erp.dto.estateloan.EstateLoanRequest;
+import com.madukotawatte.erp.dto.estateloan.EstateLoanResponse;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanTransactionRequest;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanTransactionResponse;
 import com.madukotawatte.erp.dto.estateloan.CreditCardLimitResponse;
@@ -64,6 +68,7 @@ public class FinanceService {
 
     private final MonetaryAssetTransactionRepository monetaryAssetTransactionRepository;
     private final EstateLoanTransactionRepository estateLoanTransactionRepository;
+    private final EstateLoanRepository estateLoanRepository;
     private final CreditCardLimitRepository creditCardLimitRepository;
     private final SalesLatexRepository salesLatexRepository;
     private final SalesRubberSolidRepository salesRubberSolidRepository;
@@ -219,7 +224,7 @@ public class FinanceService {
 
     /** asOf == null returns the current balance; otherwise reconstructs the balance as of that date (inclusive). */
     public List<EstateLoanBalanceResponse> getEstateLoanBalances(LocalDate asOf) {
-        List<String> loanTypes = List.of("credit-card - Peoples", "credit-card - Sampath", "Loan-mom", "Loan-other");
+        List<String> loanTypes = CREDIT_CARD_TYPES;
         return loanTypes.stream()
                 .map(loanType -> {
                     List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanTypeOrderByCreatedAtAsc(loanType);
@@ -385,6 +390,55 @@ public class FinanceService {
                 .balance(balance)
                 .availableCredit(request.getCreditLimit().subtract(balance))
                 .build();
+    }
+
+    // ── Named Estate Loans (replaces the old 'Loan-mom'/'Loan-other' buckets) ────
+    private static final List<String> LOAN_PAYMENT_ASSET_TYPES =
+            List.of("Cash", "Bank-BOC", "Bank-Peoples", "Bank-Seylan");
+
+    public List<EstateLoanResponse> getEstateLoans() {
+        return estateLoanRepository.findAll().stream()
+                .map(EstateLoanMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public EstateLoanResponse createEstateLoan(EstateLoanRequest request) {
+        EstateLoan loan = EstateLoanMapper.toEntity(request);
+        return EstateLoanMapper.toResponse(estateLoanRepository.save(loan));
+    }
+
+    /**
+     * A loan payment must actually settle through the Cash & Debt ledger — same reasoning
+     * as {@link #recordLabourExpense}, otherwise "paying off" a loan wouldn't touch the
+     * estate's cash/bank balances at all.
+     */
+    @Transactional
+    public EstateLoanResponse recordEstateLoanPayment(String loanId, EstateLoanPaymentRequest request) {
+        EstateLoan loan = estateLoanRepository.findById(loanId)
+                .orElseThrow(() -> new ResourceNotFoundException("EstateLoan", "id", loanId));
+        if (!LOAN_PAYMENT_ASSET_TYPES.contains(request.getPaymentType())) {
+            throw new BadRequestException("Invalid payment type: " + request.getPaymentType());
+        }
+        if (request.getAmount().compareTo(loan.getCurrentBalance()) > 0) {
+            throw new InsufficientFundsException("Payment exceeds outstanding balance on loan " + loan.getName());
+        }
+
+        createMonetaryTransactionEntity("money out", request.getPaymentType(), request.getAmount());
+
+        EstateLoanTransaction ledgerTx = new EstateLoanTransaction();
+        ledgerTx.setId(UUID.randomUUID().toString());
+        ledgerTx.setLoanId(loanId);
+        ledgerTx.setTransactionType("repay");
+        ledgerTx.setLastAmount(loan.getCurrentBalance());
+        ledgerTx.setNewAmount(loan.getCurrentBalance().subtract(request.getAmount()));
+        estateLoanTransactionRepository.save(ledgerTx);
+
+        loan.setCurrentBalance(loan.getCurrentBalance().subtract(request.getAmount()));
+        if (loan.getCurrentBalance().compareTo(BigDecimal.ZERO) == 0) {
+            loan.setIsActive(false);
+        }
+        return EstateLoanMapper.toResponse(estateLoanRepository.save(loan));
     }
 
     // ── Sales Latex ─────────────────────────────────────────────
@@ -840,6 +894,29 @@ public class FinanceService {
         Employee employee = employeeRepository.findById(request.getEmployeeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", request.getEmployeeId()));
         com.madukotawatte.erp.entity.EmployeeTransaction transaction = EmployeeTransactionMapper.toEntity(request, employee);
+        return EmployeeTransactionMapper.toResponse(employeeTransactionRepository.save(transaction));
+    }
+
+    /**
+     * A salary payment must actually settle through the Cash & Debt ledger — same reasoning
+     * as {@link #recordLabourExpense}, otherwise a "paid" salary would silently leave the
+     * estate's cash/bank balances unaware that money actually left the accounts.
+     */
+    @Transactional
+    public EmployeeTransactionResponse recordSalaryPayment(EmployeeSalaryPaymentRequest request) {
+        Employee employee = employeeRepository.findById(request.getEmployeeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", request.getEmployeeId()));
+        String ledgerAsset = LABOUR_PAYMENT_TO_LEDGER_ASSET.getOrDefault(request.getPaymentType(), "Cash");
+        createMonetaryTransactionEntity("money out", ledgerAsset, request.getAmount());
+
+        com.madukotawatte.erp.entity.EmployeeTransaction transaction = com.madukotawatte.erp.entity.EmployeeTransaction.builder()
+                .transactionRecordId(java.util.UUID.randomUUID().toString())
+                .employee(employee)
+                .type("Salary_Payment")
+                .paymentType(request.getPaymentType())
+                .amount(request.getAmount())
+                .timestamp(request.getTimestamp())
+                .build();
         return EmployeeTransactionMapper.toResponse(employeeTransactionRepository.save(transaction));
     }
 

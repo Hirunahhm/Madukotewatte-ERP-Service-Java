@@ -3,6 +3,7 @@ package com.madukotawatte.erp.dto.loan;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -17,7 +18,7 @@ public class EmployeeLoanRequest {
     private BigDecimal principalAmount;
 
     @NotNull
-    @Positive
+    @PositiveOrZero
     private BigDecimal interest;
 
     @NotNull

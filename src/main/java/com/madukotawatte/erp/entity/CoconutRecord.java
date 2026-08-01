@@ -23,10 +23,6 @@ public class CoconutRecord extends BaseEntity {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_record_id")
-    private EmployeeTransaction employeeTransaction;
-
     // 'Sri Lanka Tall' | 'King Coconut (Thembili)' | 'Green Dwarf' | 'Yellow Dwarf' | 'CRIC-65' | 'San Ramon' | 'Other'
     @Column(length = 30)
     private String variety;

@@ -2,6 +2,9 @@ package com.madukotawatte.erp.controller;
 
 import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanBalanceResponse;
+import com.madukotawatte.erp.dto.estateloan.EstateLoanPaymentRequest;
+import com.madukotawatte.erp.dto.estateloan.EstateLoanRequest;
+import com.madukotawatte.erp.dto.estateloan.EstateLoanResponse;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanTransactionRequest;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanTransactionResponse;
 import com.madukotawatte.erp.dto.estateloan.CreditCardLimitResponse;
@@ -80,5 +83,21 @@ public class EstateLoanController {
     public ResponseEntity<CreditCardLimitResponse> updateCreditCardLimit(
             @Valid @RequestBody UpdateCreditCardLimitRequest request) {
         return ResponseEntity.ok(financeService.updateCreditCardLimit(request));
+    }
+
+    @GetMapping("/loans")
+    public ResponseEntity<List<EstateLoanResponse>> getEstateLoans() {
+        return ResponseEntity.ok(financeService.getEstateLoans());
+    }
+
+    @PostMapping("/loans")
+    public ResponseEntity<EstateLoanResponse> createEstateLoan(@Valid @RequestBody EstateLoanRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.createEstateLoan(request));
+    }
+
+    @PostMapping("/loans/{id}/payments")
+    public ResponseEntity<EstateLoanResponse> recordEstateLoanPayment(
+            @PathVariable String id, @Valid @RequestBody EstateLoanPaymentRequest request) {
+        return ResponseEntity.ok(financeService.recordEstateLoanPayment(id, request));
     }
 }

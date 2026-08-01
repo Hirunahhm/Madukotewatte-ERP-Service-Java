@@ -1,5 +1,6 @@
 package com.madukotawatte.erp.dto.sales;
 
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -22,6 +23,7 @@ public class SalesLatexRequest {
 
     @NotNull
     @Positive
+    @DecimalMax("150")
     private BigDecimal metrolacReading;
 
     @NotNull

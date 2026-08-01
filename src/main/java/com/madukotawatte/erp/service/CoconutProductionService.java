@@ -8,13 +8,11 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.load.VolumeTrendResponse;
 import com.madukotawatte.erp.entity.CoconutRecord;
 import com.madukotawatte.erp.entity.Employee;
-import com.madukotawatte.erp.entity.EmployeeTransaction;
 import com.madukotawatte.erp.entity.Load;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.CoconutMapper;
 import com.madukotawatte.erp.repository.CoconutRecordRepository;
 import com.madukotawatte.erp.repository.EmployeeRepository;
-import com.madukotawatte.erp.repository.EmployeeTransactionRepository;
 import com.madukotawatte.erp.repository.LoadRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +29,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,15 +38,12 @@ public class CoconutProductionService {
     private final CoconutRecordRepository coconutRecordRepository;
     private final LoadRepository loadRepository;
     private final EmployeeRepository employeeRepository;
-    private final EmployeeTransactionRepository employeeTransactionRepository;
 
     @Transactional
     public CoconutRecordResponse createCoconutRecord(CoconutRecordRequest request) {
         Load load = findLoadById(request.getLoadId());
         Employee employee = findEmployeeById(request.getEmployeeId());
         CoconutRecord record = CoconutMapper.toEntity(request, load, employee);
-        record.setEmployeeTransaction(
-                createHarvestTransactionIfApplicable(employee, request.getNutCount(), request.getTimestamp()));
         return CoconutMapper.toResponse(coconutRecordRepository.save(record));
     }
 
@@ -88,10 +82,6 @@ public class CoconutProductionService {
         record.setNutCount(request.getNutCount());
         record.setMassKg(request.getMassKg());
         record.setTimestamp(request.getTimestamp());
-        if (record.getEmployeeTransaction() == null) {
-            record.setEmployeeTransaction(
-                    createHarvestTransactionIfApplicable(employee, request.getNutCount(), request.getTimestamp()));
-        }
         return CoconutMapper.toResponse(coconutRecordRepository.save(record));
     }
 
@@ -177,21 +167,6 @@ public class CoconutProductionService {
                         .recordCount(e.getValue().size())
                         .build())
                 .collect(Collectors.toList());
-    }
-
-    private EmployeeTransaction createHarvestTransactionIfApplicable(Employee employee, Integer nutCount, LocalDateTime timestamp) {
-        if (nutCount == null || nutCount <= 0) return null;
-        BigDecimal ratePerNut = employee.getRatePerNut();
-        if (ratePerNut == null || ratePerNut.compareTo(BigDecimal.ZERO) <= 0) return null;
-
-        EmployeeTransaction transaction = EmployeeTransaction.builder()
-                .transactionRecordId(UUID.randomUUID().toString())
-                .employee(employee)
-                .type("Coconut_Harvest")
-                .amount(ratePerNut.multiply(BigDecimal.valueOf(nutCount)))
-                .timestamp(timestamp)
-                .build();
-        return employeeTransactionRepository.save(transaction);
     }
 
     private CoconutRecord findCoconutRecordById(String id) {

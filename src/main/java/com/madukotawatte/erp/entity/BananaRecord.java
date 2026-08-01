@@ -23,10 +23,6 @@ public class BananaRecord extends BaseEntity {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_record_id")
-    private EmployeeTransaction employeeTransaction;
-
     // 'Kolikuttu' | 'Ambul' | 'Seeni Kesel' | 'Anamalu' | 'Rathkesel' | 'Suwandel' | 'Other'
     @Column(length = 30)
     private String variety;

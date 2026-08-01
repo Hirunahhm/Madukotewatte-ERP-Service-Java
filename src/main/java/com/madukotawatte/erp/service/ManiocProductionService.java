@@ -7,13 +7,11 @@ import com.madukotawatte.erp.dto.manioc.ManiocRecordRequest;
 import com.madukotawatte.erp.dto.manioc.ManiocRecordResponse;
 import com.madukotawatte.erp.dto.manioc.ManiocVarietyBreakdownResponse;
 import com.madukotawatte.erp.entity.Employee;
-import com.madukotawatte.erp.entity.EmployeeTransaction;
 import com.madukotawatte.erp.entity.Load;
 import com.madukotawatte.erp.entity.ManiocRecord;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.ManiocMapper;
 import com.madukotawatte.erp.repository.EmployeeRepository;
-import com.madukotawatte.erp.repository.EmployeeTransactionRepository;
 import com.madukotawatte.erp.repository.LoadRepository;
 import com.madukotawatte.erp.repository.ManiocRecordRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -31,7 +29,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,15 +38,12 @@ public class ManiocProductionService {
     private final ManiocRecordRepository maniocRecordRepository;
     private final LoadRepository loadRepository;
     private final EmployeeRepository employeeRepository;
-    private final EmployeeTransactionRepository employeeTransactionRepository;
 
     @Transactional
     public ManiocRecordResponse createManiocRecord(ManiocRecordRequest request) {
         Load load = findLoadById(request.getLoadId());
         Employee employee = findEmployeeById(request.getEmployeeId());
         ManiocRecord record = ManiocMapper.toEntity(request, load, employee);
-        record.setEmployeeTransaction(
-                createHarvestTransactionIfApplicable(employee, request.getMassKg(), request.getTimestamp()));
         return ManiocMapper.toResponse(maniocRecordRepository.save(record));
     }
 
@@ -87,10 +81,6 @@ public class ManiocProductionService {
         record.setVarietyNote(request.getVarietyNote());
         record.setMassKg(request.getMassKg());
         record.setTimestamp(request.getTimestamp());
-        if (record.getEmployeeTransaction() == null) {
-            record.setEmployeeTransaction(
-                    createHarvestTransactionIfApplicable(employee, request.getMassKg(), request.getTimestamp()));
-        }
         return ManiocMapper.toResponse(maniocRecordRepository.save(record));
     }
 
@@ -169,21 +159,6 @@ public class ManiocProductionService {
                         .recordCount(e.getValue().size())
                         .build())
                 .collect(Collectors.toList());
-    }
-
-    private EmployeeTransaction createHarvestTransactionIfApplicable(Employee employee, BigDecimal massKg, LocalDateTime timestamp) {
-        if (massKg == null || massKg.compareTo(BigDecimal.ZERO) <= 0) return null;
-        BigDecimal ratePerKgManioc = employee.getRatePerKgManioc();
-        if (ratePerKgManioc == null || ratePerKgManioc.compareTo(BigDecimal.ZERO) <= 0) return null;
-
-        EmployeeTransaction transaction = EmployeeTransaction.builder()
-                .transactionRecordId(UUID.randomUUID().toString())
-                .employee(employee)
-                .type("Manioc_Harvest")
-                .amount(ratePerKgManioc.multiply(massKg))
-                .timestamp(timestamp)
-                .build();
-        return employeeTransactionRepository.save(transaction);
     }
 
     private ManiocRecord findManiocRecordById(String id) {

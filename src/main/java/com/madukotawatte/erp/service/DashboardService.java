@@ -50,7 +50,7 @@ public class DashboardService {
                 .collect(Collectors.toList());
 
         // Loan balances
-        List<String> loanTypes = List.of("credit-card - Peoples", "credit-card - Sampath", "Loan-mom", "Loan-other");
+        List<String> loanTypes = List.of("credit-card - Peoples", "credit-card - Sampath");
         List<EstateLoanBalanceResponse> loanBalances = loanTypes.stream()
                 .map(loanType -> {
                     List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanTypeOrderByCreatedAtAsc(loanType);

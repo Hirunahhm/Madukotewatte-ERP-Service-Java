@@ -89,15 +89,6 @@ public class WorkforceService {
         if (request.getRatePerTree() != null) {
             employee.setRatePerTree(request.getRatePerTree());
         }
-        if (request.getRatePerBunch() != null) {
-            employee.setRatePerBunch(request.getRatePerBunch());
-        }
-        if (request.getRatePerNut() != null) {
-            employee.setRatePerNut(request.getRatePerNut());
-        }
-        if (request.getRatePerKgManioc() != null) {
-            employee.setRatePerKgManioc(request.getRatePerKgManioc());
-        }
         employee.setPosition(request.getPosition());
         if (request.getIsActive() != null) {
             employee.setIsActive(request.getIsActive());
@@ -189,9 +180,7 @@ public class WorkforceService {
         BigDecimal advances = sumAmountsByType(records, "Advance");
         BigDecimal loanPayments = sumAmountsByType(records, "Loan_Payment");
         BigDecimal latexTap = sumAmountsByType(records, "Latex_Tap");
-        BigDecimal harvestEarnings = sumAmountsByType(records, "Banana_Harvest")
-                .add(sumAmountsByType(records, "Coconut_Harvest"))
-                .add(sumAmountsByType(records, "Manioc_Harvest"));
+        BigDecimal salaryPayments = sumAmountsByType(records, "Salary_Payment");
 
         return EmployeeTransactionStatsResponse.builder()
                 .totalAmount(total)
@@ -199,7 +188,7 @@ public class WorkforceService {
                 .advances(advances)
                 .loanPayments(loanPayments)
                 .latexTap(latexTap)
-                .harvestEarnings(harvestEarnings)
+                .salaryPayments(salaryPayments)
                 .transactionCount(records.size())
                 .build();
     }
