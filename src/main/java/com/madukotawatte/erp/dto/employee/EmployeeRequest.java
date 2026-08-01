@@ -22,6 +22,12 @@ public class EmployeeRequest {
 
     private BigDecimal ratePerTree;
 
+    private BigDecimal ratePerBunch;
+
+    private BigDecimal ratePerNut;
+
+    private BigDecimal ratePerKgManioc;
+
     private String position;
 
     private Boolean isActive;

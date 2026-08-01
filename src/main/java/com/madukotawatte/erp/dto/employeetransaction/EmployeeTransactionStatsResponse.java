@@ -17,5 +17,6 @@ public class EmployeeTransactionStatsResponse {
     private BigDecimal advances;
     private BigDecimal loanPayments;
     private BigDecimal latexTap;
+    private BigDecimal harvestEarnings;
     private long transactionCount;
 }
