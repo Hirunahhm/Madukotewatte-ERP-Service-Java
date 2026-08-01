@@ -1,0 +1,15 @@
+# Auto-merged by plain `docker compose up` (but NOT by the CI/CD deploy
+# command, which pins `-f docker-compose.yml -f docker-compose.prod.yml`
+# and so never sees this file).
+#
+# Locally we run the frontend with `npm run dev` and hit the backend
+# directly on :8081, so nginx (prod-only TLS/reverse-proxy config, pointed
+# at the Azure VPS domain and Let's Encrypt certs that don't exist here)
+# and the frontend container are both unneeded — parking them behind an
+# unused profile keeps `docker compose up` to just db + app.
+services:
+  frontend:
+    profiles: ["disabled"]
+
+  nginx:
+    profiles: ["disabled"]

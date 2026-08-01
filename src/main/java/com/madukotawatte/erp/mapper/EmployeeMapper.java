@@ -5,6 +5,7 @@ import com.madukotawatte.erp.dto.employee.EmployeeResponse;
 import com.madukotawatte.erp.dto.employee.EmployeeSummaryResponse;
 import com.madukotawatte.erp.entity.Employee;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public class EmployeeMapper {
@@ -16,6 +17,10 @@ public class EmployeeMapper {
         employee.setName(request.getName());
         employee.setJoinedDate(request.getJoinedDate());
         employee.setSalary(request.getSalary());
+        employee.setRatePerTree(request.getRatePerTree() != null ? request.getRatePerTree() : BigDecimal.ZERO);
+        employee.setRatePerBunch(request.getRatePerBunch() != null ? request.getRatePerBunch() : BigDecimal.ZERO);
+        employee.setRatePerNut(request.getRatePerNut() != null ? request.getRatePerNut() : BigDecimal.ZERO);
+        employee.setRatePerKgManioc(request.getRatePerKgManioc() != null ? request.getRatePerKgManioc() : BigDecimal.ZERO);
         employee.setPosition(request.getPosition());
         return employee;
     }
@@ -26,6 +31,10 @@ public class EmployeeMapper {
                 .name(employee.getName())
                 .joinedDate(employee.getJoinedDate())
                 .salary(employee.getSalary())
+                .ratePerTree(employee.getRatePerTree())
+                .ratePerBunch(employee.getRatePerBunch())
+                .ratePerNut(employee.getRatePerNut())
+                .ratePerKgManioc(employee.getRatePerKgManioc())
                 .position(employee.getPosition())
                 .isActive(employee.getIsActive())
                 .createdAt(employee.getCreatedAt())

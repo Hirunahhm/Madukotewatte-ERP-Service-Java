@@ -18,6 +18,10 @@ public class EmployeeResponse {
     private String name;
     private LocalDate joinedDate;
     private BigDecimal salary;
+    private BigDecimal ratePerTree;
+    private BigDecimal ratePerBunch;
+    private BigDecimal ratePerNut;
+    private BigDecimal ratePerKgManioc;
     private String position;
     private Boolean isActive;
     private LocalDateTime createdAt;

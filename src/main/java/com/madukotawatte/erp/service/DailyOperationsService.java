@@ -63,6 +63,7 @@ public class DailyOperationsService {
     private final SalesLatexRepository salesLatexRepository;
     private final LabourRepository labourRepository;
     private final EmployeeTransactionRepository employeeTransactionRepository;
+    private final FinanceService financeService;
 
     // ── Attendance ──────────────────────────────────────────────
     @Transactional
@@ -73,6 +74,8 @@ public class DailyOperationsService {
                         .orElseThrow(() -> new ResourceNotFoundException("Calendar", "id", request.getCalendarId()))
                 : null;
         Attendance attendance = AttendanceMapper.toEntity(request, employee, calendar);
+        attendance.setEmployeeTransaction(
+                createLatexTapTransactionIfApplicable(employee, request.getNoOfTrees(), attendance.getTimestamp()));
         return AttendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
@@ -90,7 +93,30 @@ public class DailyOperationsService {
                         .orElseThrow(() -> new ResourceNotFoundException("Calendar", "id", request.getCalendarId()))
                 : null;
         Attendance attendance = AttendanceMapper.toEntity(request, employee, calendar);
+        attendance.setEmployeeTransaction(
+                createLatexTapTransactionIfApplicable(employee, request.getNoOfTrees(), attendance.getTimestamp()));
         return AttendanceMapper.toResponse(attendanceRepository.save(attendance));
+    }
+
+    /**
+     * Trees tapped during attendance are a real earning, not just a productivity stat —
+     * this posts a Latex_Tap transaction (employee.ratePerTree × trees) that then feeds
+     * into the monthly payroll's net total. Rate defaults to 0, so nothing is posted
+     * until an admin sets a per-tree rate on the employee.
+     */
+    private EmployeeTransaction createLatexTapTransactionIfApplicable(Employee employee, Integer noOfTrees, LocalDateTime timestamp) {
+        if (noOfTrees == null || noOfTrees <= 0) return null;
+        BigDecimal ratePerTree = employee.getRatePerTree();
+        if (ratePerTree == null || ratePerTree.compareTo(BigDecimal.ZERO) <= 0) return null;
+
+        EmployeeTransaction transaction = EmployeeTransaction.builder()
+                .transactionRecordId(UUID.randomUUID().toString())
+                .employee(employee)
+                .type("Latex_Tap")
+                .amount(ratePerTree.multiply(BigDecimal.valueOf(noOfTrees)))
+                .timestamp(timestamp)
+                .build();
+        return employeeTransactionRepository.save(transaction);
     }
 
     public AttendanceResponse getAttendance(String id) {
@@ -123,6 +149,10 @@ public class DailyOperationsService {
         attendance.setTimestamp(request.getTimestamp());
         attendance.setNoOfTrees(request.getNoOfTrees());
         attendance.setNoWork(request.getNoWork() != null ? request.getNoWork() : "none");
+        if (attendance.getEmployeeTransaction() == null) {
+            attendance.setEmployeeTransaction(
+                    createLatexTapTransactionIfApplicable(employee, request.getNoOfTrees(), request.getTimestamp()));
+        }
         return AttendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
@@ -236,7 +266,30 @@ public class DailyOperationsService {
                     .orElseThrow(() -> new ResourceNotFoundException("MetrolacReading", "id", request.getMetrolacReadingId()));
         }
         LatexRecord record = LatexRecordMapper.toEntity(request, load, employee, metrolacReading);
-        return LatexRecordMapper.toResponse(latexRecordRepository.save(record));
+        LatexRecord saved = latexRecordRepository.save(record);
+        recordAmmoniaUsage(request.getAmmoniaAmount(), request.getTimestamp());
+        return LatexRecordMapper.toResponse(saved);
+    }
+
+    /**
+     * Every latex collection records how much ammonia was used to stabilise it, but that
+     * figure used to live only on the latex_records row — the Ammonia Tracking stock
+     * ledger never saw it, so "current stock" silently drifted from reality. This posts
+     * the matching usage entry so the two stay in sync.
+     */
+    private void recordAmmoniaUsage(BigDecimal ammoniaAmount, LocalDateTime timestamp) {
+        if (ammoniaAmount == null || ammoniaAmount.compareTo(BigDecimal.ZERO) <= 0) return;
+        BigDecimal previousAmount = ammoniaRecordRepository.findTopByOrderByTimestampDesc()
+                .map(AmmoniaRecord::getNewAmount)
+                .orElse(BigDecimal.ZERO);
+        AmmoniaRecord usage = AmmoniaRecord.builder()
+                .recordId(UUID.randomUUID().toString())
+                .type("usage")
+                .previousAmount(previousAmount)
+                .newAmount(previousAmount.subtract(ammoniaAmount))
+                .timestamp(timestamp)
+                .build();
+        ammoniaRecordRepository.save(usage);
     }
 
     public LatexRecordResponse getLatexRecord(String id) {
@@ -577,15 +630,18 @@ public class DailyOperationsService {
     }
 
     private EmployeeTransaction createLinkedTransaction(Employee employee, LabourRequest request) {
+        LocalDateTime timestamp = request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now();
         EmployeeTransaction transaction = EmployeeTransaction.builder()
                 .transactionRecordId(UUID.randomUUID().toString())
                 .employee(employee)
                 .type("Manual_Labor")
                 .paymentType(request.getPaymentType())
                 .amount(request.getAmount())
-                .timestamp(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now())
+                .timestamp(timestamp)
                 .build();
-        return employeeTransactionRepository.save(transaction);
+        EmployeeTransaction saved = employeeTransactionRepository.save(transaction);
+        financeService.recordLabourExpense(request.getAmount(), request.getPaymentType(), timestamp);
+        return saved;
     }
 
     private Labour findLabourById(String id) {
