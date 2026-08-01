@@ -26,4 +26,13 @@ USER estate
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# The estate operates in Sri Lanka; all business timestamps (attendance, latex
+# records, expenses, ...) are constructed as naive LocalDateTime "wall clock"
+# values with no timezone info attached, both by the frontend and by backend
+# calls to LocalDateTime.now(). A container defaulting to UTC makes the two
+# disagree by 5:30 — e.g. LocalDateTime.now() used as an upper bound in a
+# "last N days" query would exclude a same-day record whose naive timestamp
+# is still "in the future" from UTC's perspective. Pinning the JVM's own
+# timezone (via its bundled tz database, no OS tzdata package needed) keeps
+# every LocalDateTime.now() call consistent with what the frontend sends.
+ENTRYPOINT ["java", "-Duser.timezone=Asia/Colombo", "-jar", "app.jar"]

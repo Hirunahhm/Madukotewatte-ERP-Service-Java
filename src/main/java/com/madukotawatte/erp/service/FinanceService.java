@@ -109,33 +109,75 @@ public class FinanceService {
 
     @Transactional
     public MonetaryAssetTransactionResponse createMonetaryTransaction(MonetaryAssetTransactionRequest request) {
-        List<MonetaryAssetTransaction> existing = monetaryAssetTransactionRepository.findByAssetTypeOrderByCreatedAtAsc(request.getAssetType());
+        MonetaryAssetTransaction transaction = createMonetaryTransactionEntity(
+                request.getTransactionType(), request.getAssetType(), request.getAmount());
+        return MonetaryAssetMapper.toResponse(transaction);
+    }
+
+    private MonetaryAssetTransaction createMonetaryTransactionEntity(String transactionType, String assetType, BigDecimal amount) {
+        List<MonetaryAssetTransaction> existing = monetaryAssetTransactionRepository.findByAssetTypeOrderByCreatedAtAsc(assetType);
         BigDecimal lastAmount = BigDecimal.ZERO;
         if (!existing.isEmpty()) {
             lastAmount = existing.get(existing.size() - 1).getNewAmount();
         }
 
         BigDecimal newAmount;
-        if ("money in".equals(request.getTransactionType())) {
-            newAmount = lastAmount.add(request.getAmount());
-        } else if ("money out".equals(request.getTransactionType())) {
-            newAmount = lastAmount.subtract(request.getAmount());
+        if ("money in".equals(transactionType)) {
+            newAmount = lastAmount.add(amount);
+        } else if ("money out".equals(transactionType)) {
+            newAmount = lastAmount.subtract(amount);
         } else {
-            throw new BadRequestException("Invalid transaction type: " + request.getTransactionType());
+            throw new BadRequestException("Invalid transaction type: " + transactionType);
         }
 
         if (newAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new InsufficientFundsException("Insufficient funds in " + request.getAssetType());
+            throw new InsufficientFundsException("Insufficient funds in " + assetType);
         }
 
         MonetaryAssetTransaction transaction = new MonetaryAssetTransaction();
         transaction.setId(UUID.randomUUID().toString());
-        transaction.setTransactionType(request.getTransactionType());
-        transaction.setAssetType(request.getAssetType());
+        transaction.setTransactionType(transactionType);
+        transaction.setAssetType(assetType);
         transaction.setLastAmount(lastAmount);
         transaction.setNewAmount(newAmount);
 
-        return MonetaryAssetMapper.toResponse(monetaryAssetTransactionRepository.save(transaction));
+        return monetaryAssetTransactionRepository.save(transaction);
+    }
+
+    // Labour's payment_type column is constrained to the coarse ('cash' | 'bank_transfer')
+    // domain, unlike Expenses' bank-specific one — map to a concrete ledger asset so a
+    // labour payout still settles against a real account.
+    private static final Map<String, String> LABOUR_PAYMENT_TO_LEDGER_ASSET = Map.of(
+            "cash", "Cash",
+            "bank_transfer", "Bank-BOC"
+    );
+    private static final Map<String, String> LABOUR_PAYMENT_TO_EXPENSE_PAYMENT_TYPE = Map.of(
+            "cash", "Cash",
+            "bank_transfer", "Bank Transfer-BOC"
+    );
+
+    /**
+     * Labour payouts must settle through the same Cash & Debt ledger and Financials
+     * expense tracking as any other outgoing payment — otherwise a "paid" labour record
+     * silently leaves both unaware that money actually left the estate's accounts.
+     */
+    @Transactional
+    public void recordLabourExpense(BigDecimal amount, String labourPaymentType, java.time.LocalDateTime timestamp) {
+        String ledgerAsset = LABOUR_PAYMENT_TO_LEDGER_ASSET.getOrDefault(labourPaymentType, "Cash");
+        String expensePaymentType = LABOUR_PAYMENT_TO_EXPENSE_PAYMENT_TYPE.getOrDefault(labourPaymentType, "Cash");
+
+        MonetaryAssetTransaction ledgerTx = createMonetaryTransactionEntity("money out", ledgerAsset, amount);
+
+        Expense expense = new Expense();
+        expense.setExpenseId(UUID.randomUUID().toString());
+        expense.setType("Labor");
+        expense.setAmount(amount);
+        expense.setTimestamp(timestamp);
+        expense.setIsPaid(true);
+        expense.setStatus("paid");
+        expense.setPaymentType(expensePaymentType);
+        expense.setTransaction(ledgerTx);
+        expenseRepository.save(expense);
     }
 
     public PageResponse<MonetaryAssetTransactionResponse> getAllMonetaryTransactions(

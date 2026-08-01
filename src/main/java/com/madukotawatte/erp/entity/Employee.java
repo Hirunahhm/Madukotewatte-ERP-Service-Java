@@ -23,6 +23,9 @@ public class Employee extends BaseEntity {
 
     private BigDecimal salary;
 
+    @Column(name = "rate_per_tree")
+    private BigDecimal ratePerTree = BigDecimal.ZERO;
+
     private String position;
 
     @Column(name = "is_active", nullable = false)

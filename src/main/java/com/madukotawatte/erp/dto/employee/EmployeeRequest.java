@@ -20,6 +20,8 @@ public class EmployeeRequest {
     @Positive
     private BigDecimal salary;
 
+    private BigDecimal ratePerTree;
+
     private String position;
 
     private Boolean isActive;

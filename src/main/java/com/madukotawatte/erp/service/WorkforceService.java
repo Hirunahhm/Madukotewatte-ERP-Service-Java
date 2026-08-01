@@ -86,6 +86,9 @@ public class WorkforceService {
         employee.setName(request.getName());
         employee.setJoinedDate(request.getJoinedDate());
         employee.setSalary(request.getSalary());
+        if (request.getRatePerTree() != null) {
+            employee.setRatePerTree(request.getRatePerTree());
+        }
         employee.setPosition(request.getPosition());
         if (request.getIsActive() != null) {
             employee.setIsActive(request.getIsActive());

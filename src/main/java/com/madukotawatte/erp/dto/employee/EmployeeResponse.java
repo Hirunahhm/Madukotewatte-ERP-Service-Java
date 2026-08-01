@@ -18,6 +18,7 @@ public class EmployeeResponse {
     private String name;
     private LocalDate joinedDate;
     private BigDecimal salary;
+    private BigDecimal ratePerTree;
     private String position;
     private Boolean isActive;
     private LocalDateTime createdAt;
