@@ -36,6 +36,6 @@ public class LabourRequest {
 
     private LocalDateTime timestamp;
 
-    // 'bank_transfer' | 'cash' — required only when isPaid=true (validated in service layer)
-    private String paymentType;
+    // financial_accounts.code (cash or bank) — required only when isPaid=true (validated in service layer)
+    private String accountCode;
 }

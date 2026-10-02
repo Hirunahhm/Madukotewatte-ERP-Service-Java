@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -22,6 +23,8 @@ public class SalesLatexResponse {
     private BigDecimal totalAmount;
     private Boolean isPaymentReceived;
     private String transactionId;
+    private String accountCode;
+    private LocalDate paymentDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

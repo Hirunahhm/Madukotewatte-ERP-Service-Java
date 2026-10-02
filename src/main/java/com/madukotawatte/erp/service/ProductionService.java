@@ -1,0 +1,475 @@
+package com.madukotawatte.erp.service;
+
+import com.madukotawatte.erp.dto.ammonia.AmmoniaRecordRequest;
+import com.madukotawatte.erp.dto.ammonia.AmmoniaRecordResponse;
+import com.madukotawatte.erp.dto.ammonia.AmmoniaBalanceResponse;
+import com.madukotawatte.erp.dto.ammonia.AmmoniaUsageResponse;
+import com.madukotawatte.erp.dto.calendar.CalendarRequest;
+import com.madukotawatte.erp.dto.calendar.CalendarResponse;
+import com.madukotawatte.erp.dto.attendance.AttendanceBulkRequest;
+import java.time.LocalDate;
+import java.util.Set;
+import java.util.UUID;
+import com.madukotawatte.erp.dto.attendance.AttendanceRequest;
+import com.madukotawatte.erp.dto.attendance.AttendanceResponse;
+import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.labour.LabourRequest;
+import com.madukotawatte.erp.dto.labour.LabourResponse;
+import com.madukotawatte.erp.dto.latex.LatexRecordRequest;
+import com.madukotawatte.erp.dto.latex.LatexRecordResponse;
+import com.madukotawatte.erp.dto.load.LoadRequest;
+import com.madukotawatte.erp.dto.load.LoadResponse;
+import com.madukotawatte.erp.dto.load.LoadSummaryResponse;
+import com.madukotawatte.erp.dto.load.VolumeTrendResponse;
+import com.madukotawatte.erp.dto.metrolac.MetrolacReadingRequest;
+import com.madukotawatte.erp.dto.metrolac.MetrolacReadingResponse;
+import com.madukotawatte.erp.dto.rubbersolid.RubberSolidRecordRequest;
+import com.madukotawatte.erp.dto.rubbersolid.RubberSolidRecordResponse;
+import com.madukotawatte.erp.dto.rubbersolid.RubberLoadSummaryResponse;
+import com.madukotawatte.erp.entity.*;
+import com.madukotawatte.erp.repository.CalendarRepository;
+import com.madukotawatte.erp.exception.BadRequestException;
+import com.madukotawatte.erp.exception.ResourceNotFoundException;
+import com.madukotawatte.erp.mapper.*;
+import com.madukotawatte.erp.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/** Loads, latex / metrolac / ammonia / rubber-solid production records. */
+@Service
+@RequiredArgsConstructor
+public class ProductionService {
+
+    private final EmployeeRepository employeeRepository;
+    private final LoadRepository loadRepository;
+    private final LatexRecordRepository latexRecordRepository;
+    private final MetrolacReadingRepository metrolacReadingRepository;
+    private final AmmoniaRecordRepository ammoniaRecordRepository;
+    private final RubberSolidRecordRepository rubberSolidRecordRepository;
+    private final SalesLatexRepository salesLatexRepository;
+
+    // ── Load ────────────────────────────────────────────────────
+    @Transactional
+    public LoadResponse createLoad(LoadRequest request) {
+        Load load = LoadMapper.toEntity(request);
+        return LoadMapper.toResponse(loadRepository.save(load));
+    }
+
+    public LoadResponse getLoad(String id) {
+        return LoadMapper.toResponse(findLoadById(id));
+    }
+
+    public PageResponse<LoadResponse> getAllLoads(String loadType, Pageable pageable) {
+        Specification<Load> spec = (root, query, cb) -> loadType != null && !loadType.isBlank()
+                ? cb.equal(root.get("loadType"), loadType)
+                : cb.conjunction();
+        return PageResponse.from(loadRepository.findAll(spec, pageable).map(LoadMapper::toResponse));
+    }
+
+    public PageResponse<LoadResponse> getLoadsByDateRange(LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        return PageResponse.from(loadRepository.findByStartDateBetween(from, to, pageable).map(LoadMapper::toResponse));
+    }
+
+    public LoadSummaryResponse getLoadSummary(String loadId) {
+        Load load = findLoadById(loadId);
+        List<Object[]> rows = latexRecordRepository.aggregateByLoadId(loadId);
+        Object[] agg = rows.isEmpty() ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, 0L, null} : rows.get(0);
+        return LoadSummaryResponse.builder()
+                .loadId(load.getLoadId())
+                .loadType(load.getLoadType())
+                .status(load.getStatus())
+                .startDate(load.getStartDate())
+                .totalLatexCollected(agg[0] instanceof BigDecimal ? (BigDecimal) agg[0] : new BigDecimal(agg[0].toString()))
+                .totalAmmoniaUsed(agg[1] instanceof BigDecimal ? (BigDecimal) agg[1] : new BigDecimal(agg[1].toString()))
+                .recordCount(((Number) agg[2]).intValue())
+                .lastCollectionAt((LocalDateTime) agg[3])
+                .build();
+    }
+
+    public List<VolumeTrendResponse> getLoadTrends(String loadId, int days) {
+        findLoadById(loadId);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        List<LatexRecord> records = latexRecordRepository.findByLoad_LoadId(loadId).stream()
+                .filter(r -> !r.getTimestamp().isBefore(cutoff))
+                .sorted(Comparator.comparing(LatexRecord::getTimestamp))
+                .collect(Collectors.toList());
+
+        Map<String, BigDecimal> sortedTotals = records.stream()
+            .collect(Collectors.groupingBy(
+                r -> r.getTimestamp().toLocalDate().format(DateTimeFormatter.ofPattern("MMM dd")),
+                java.util.LinkedHashMap::new,
+                Collectors.mapping(LatexRecord::getLatexAmount, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))
+            ));
+
+        // Target is constant for now as there's no target config in the DB
+        BigDecimal dailyTarget = new BigDecimal("250.00");
+
+        return sortedTotals.entrySet().stream()
+            .map(e -> VolumeTrendResponse.builder()
+                .name(e.getKey())
+                .actual(e.getValue())
+                .target(dailyTarget)
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public LoadResponse updateLoad(String id, LoadRequest request) {
+        Load load = findLoadById(id);
+        load.setLoadType(request.getLoadType());
+        load.setStartDate(request.getStartDate());
+        load.setEndDate(request.getEndDate());
+        if (request.getStatus() != null) {
+            load.setStatus(request.getStatus());
+        }
+        return LoadMapper.toResponse(loadRepository.save(load));
+    }
+
+    @Transactional
+    public void deleteLoad(String id) {
+        Load load = findLoadById(id);
+        if (!latexRecordRepository.findByLoad_LoadId(id).isEmpty()) {
+            throw new BadRequestException("Cannot delete load with associated latex records");
+        }
+        if (!rubberSolidRecordRepository.findByLoad_LoadId(id).isEmpty()) {
+            throw new BadRequestException("Cannot delete load with associated rubber solid records");
+        }
+        if (!salesLatexRepository.findByLoad_LoadId(id).isEmpty()) {
+            throw new BadRequestException("Cannot delete load with associated sales records");
+        }
+        loadRepository.delete(load);
+    }
+
+    // ── Latex Records ───────────────────────────────────────────
+    @Transactional
+    public LatexRecordResponse createLatexRecord(LatexRecordRequest request) {
+        Load load = findLoadById(request.getLoadId());
+        Employee employee = findEmployeeById(request.getEmployeeId());
+        MetrolacReading metrolacReading = null;
+        if (request.getMetrolacReadingId() != null) {
+            metrolacReading = metrolacReadingRepository.findById(request.getMetrolacReadingId())
+                    .orElseThrow(() -> new ResourceNotFoundException("MetrolacReading", "id", request.getMetrolacReadingId()));
+        }
+        LatexRecord record = LatexRecordMapper.toEntity(request, load, employee, metrolacReading);
+        LatexRecord saved = latexRecordRepository.save(record);
+        recordAmmoniaUsage(request.getAmmoniaAmount(), request.getTimestamp());
+        return LatexRecordMapper.toResponse(saved);
+    }
+
+    /**
+     * Every latex collection records how much ammonia was used to stabilise it, but that
+     * figure used to live only on the latex_records row — the Ammonia Tracking stock
+     * ledger never saw it, so "current stock" silently drifted from reality. This posts
+     * the matching usage entry so the two stay in sync.
+     */
+    private void recordAmmoniaUsage(BigDecimal ammoniaAmount, LocalDateTime timestamp) {
+        if (ammoniaAmount == null || ammoniaAmount.compareTo(BigDecimal.ZERO) <= 0) return;
+        BigDecimal previousAmount = ammoniaRecordRepository.findTopByOrderByTimestampDesc()
+                .map(AmmoniaRecord::getNewAmount)
+                .orElse(BigDecimal.ZERO);
+        AmmoniaRecord usage = AmmoniaRecord.builder()
+                .recordId(UUID.randomUUID().toString())
+                .type("usage")
+                .previousAmount(previousAmount)
+                .newAmount(previousAmount.subtract(ammoniaAmount))
+                .timestamp(timestamp)
+                .build();
+        ammoniaRecordRepository.save(usage);
+    }
+
+    public LatexRecordResponse getLatexRecord(String id) {
+        return LatexRecordMapper.toResponse(latexRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("LatexRecord", "id", id)));
+    }
+
+    public List<LatexRecordResponse> getLatexRecordsByLoad(String loadId) {
+        findLoadById(loadId);
+        return latexRecordRepository.findByLoad_LoadId(loadId).stream()
+                .map(LatexRecordMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public PageResponse<LatexRecordResponse> getAllLatexRecords(Pageable pageable) {
+        return PageResponse.from(latexRecordRepository.findAll(pageable).map(LatexRecordMapper::toResponse));
+    }
+
+    @Transactional
+    public LatexRecordResponse updateLatexRecord(String id, LatexRecordRequest request) {
+        LatexRecord record = latexRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("LatexRecord", "id", id));
+        Load load = findLoadById(request.getLoadId());
+        Employee employee = findEmployeeById(request.getEmployeeId());
+        MetrolacReading metrolacReading = null;
+        if (request.getMetrolacReadingId() != null) {
+            metrolacReading = metrolacReadingRepository.findById(request.getMetrolacReadingId())
+                    .orElseThrow(() -> new ResourceNotFoundException("MetrolacReading", "id", request.getMetrolacReadingId()));
+        }
+        record.setLoad(load);
+        record.setEmployee(employee);
+        record.setTimestamp(request.getTimestamp());
+        record.setLatexAmount(request.getLatexAmount());
+        record.setAmmoniaAmount(request.getAmmoniaAmount());
+        record.setMetrolacReading(metrolacReading);
+        return LatexRecordMapper.toResponse(latexRecordRepository.save(record));
+    }
+
+    @Transactional
+    public void deleteLatexRecord(String id) {
+        LatexRecord record = latexRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("LatexRecord", "id", id));
+        latexRecordRepository.delete(record);
+    }
+
+    // ── Metrolac Readings ───────────────────────────────────────
+    @Transactional
+    public MetrolacReadingResponse createMetrolacReading(MetrolacReadingRequest request) {
+        Load load = findLoadById(request.getLoadId());
+        MetrolacReading reading = MetrolacMapper.toEntity(request, load);
+        return MetrolacMapper.toResponse(metrolacReadingRepository.save(reading));
+    }
+
+    public MetrolacReadingResponse getMetrolacReading(String id) {
+        return MetrolacMapper.toResponse(metrolacReadingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MetrolacReading", "id", id)));
+    }
+
+    public List<MetrolacReadingResponse> getMetrolacReadingsByLoad(String loadId) {
+        findLoadById(loadId);
+        return metrolacReadingRepository.findByLoad_LoadId(loadId).stream()
+                .map(MetrolacMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public PageResponse<MetrolacReadingResponse> getAllMetrolacReadings(Pageable pageable) {
+        return PageResponse.from(metrolacReadingRepository.findAll(pageable).map(MetrolacMapper::toResponse));
+    }
+
+    @Transactional
+    public MetrolacReadingResponse updateMetrolacReading(String id, MetrolacReadingRequest request) {
+        MetrolacReading reading = metrolacReadingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MetrolacReading", "id", id));
+        Load load = findLoadById(request.getLoadId());
+        reading.setLoad(load);
+        reading.setTemperature(request.getTemperature());
+        reading.setTimestamp(request.getTimestamp());
+        return MetrolacMapper.toResponse(metrolacReadingRepository.save(reading));
+    }
+
+    @Transactional
+    public void deleteMetrolacReading(String id) {
+        MetrolacReading reading = metrolacReadingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MetrolacReading", "id", id));
+        metrolacReadingRepository.delete(reading);
+    }
+
+    // ── Ammonia Records ─────────────────────────────────────────
+    @Transactional
+    public AmmoniaRecordResponse createAmmoniaRecord(AmmoniaRecordRequest request) {
+        AmmoniaRecord record = AmmoniaMapper.toEntity(request);
+        return AmmoniaMapper.toResponse(ammoniaRecordRepository.save(record));
+    }
+
+    public AmmoniaRecordResponse getAmmoniaRecord(String id) {
+        return AmmoniaMapper.toResponse(findAmmoniaRecordById(id));
+    }
+
+    public PageResponse<AmmoniaRecordResponse> getAllAmmoniaRecords(
+            String type, LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        Specification<AmmoniaRecord> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            if (type != null && !type.isBlank()) predicates.add(cb.equal(root.get("type"), type));
+            if (from != null) predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from));
+            if (to != null) predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to));
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return PageResponse.from(ammoniaRecordRepository.findAll(spec, pageable).map(AmmoniaMapper::toResponse));
+    }
+
+    @Transactional
+    public AmmoniaRecordResponse updateAmmoniaRecord(String id, AmmoniaRecordRequest request) {
+        AmmoniaRecord record = findAmmoniaRecordById(id);
+        record.setType(request.getType());
+        record.setPreviousAmount(request.getPreviousAmount());
+        record.setNewAmount(request.getNewAmount());
+        record.setTimestamp(request.getTimestamp());
+        return AmmoniaMapper.toResponse(ammoniaRecordRepository.save(record));
+    }
+
+    @Transactional
+    public void deleteAmmoniaRecord(String id) {
+        ammoniaRecordRepository.delete(findAmmoniaRecordById(id));
+    }
+
+    public AmmoniaBalanceResponse getAmmoniaBalance() {
+        return ammoniaRecordRepository.findTopByOrderByTimestampDesc()
+                .map(latest -> {
+                    BigDecimal currentStock = latest.getNewAmount();
+                    LocalDateTime weekAgoCutoff = latest.getTimestamp().minusDays(7);
+                    double changePercent = ammoniaRecordRepository
+                            .findTopByTimestampLessThanEqualOrderByTimestampDesc(weekAgoCutoff)
+                            .map(AmmoniaRecord::getNewAmount)
+                            .filter(prev -> prev.compareTo(BigDecimal.ZERO) != 0)
+                            .map(prev -> currentStock.subtract(prev)
+                                    .divide(prev, 4, java.math.RoundingMode.HALF_UP)
+                                    .multiply(new BigDecimal(100))
+                                    .setScale(2, java.math.RoundingMode.HALF_UP)
+                                    .doubleValue())
+                            .orElse(0.0);
+                    return AmmoniaBalanceResponse.builder()
+                            .currentStock(currentStock)
+                            .lastUpdated(latest.getTimestamp())
+                            .changeVsLastWeekPercent(changePercent)
+                            .build();
+                })
+                .orElse(AmmoniaBalanceResponse.builder()
+                        .currentStock(BigDecimal.ZERO)
+                        .lastUpdated(null)
+                        .changeVsLastWeekPercent(0.0)
+                        .build());
+    }
+
+    public List<AmmoniaUsageResponse> getAmmoniaUsage(int days) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        List<AmmoniaRecord> records = ammoniaRecordRepository.findByTimestampBetween(cutoff, LocalDateTime.now()).stream()
+                .sorted(Comparator.comparing(AmmoniaRecord::getTimestamp))
+                .collect(Collectors.toList());
+
+        Map<String, BigDecimal[]> byDay = new java.util.LinkedHashMap<>();
+        for (AmmoniaRecord r : records) {
+            String day = r.getTimestamp().toLocalDate().format(DateTimeFormatter.ofPattern("MMM dd"));
+            BigDecimal delta = r.getNewAmount().subtract(r.getPreviousAmount());
+            BigDecimal[] totals = byDay.computeIfAbsent(day, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+            if ("refill".equals(r.getType())) {
+                totals[0] = totals[0].add(delta.max(BigDecimal.ZERO));
+            } else {
+                totals[1] = totals[1].add(delta.negate().max(BigDecimal.ZERO));
+            }
+        }
+
+        return byDay.entrySet().stream()
+                .map(e -> AmmoniaUsageResponse.builder()
+                        .name(e.getKey())
+                        .refill(e.getValue()[0])
+                        .out(e.getValue()[1])
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private AmmoniaRecord findAmmoniaRecordById(String id) {
+        return ammoniaRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("AmmoniaRecord", "id", id));
+    }
+
+    // ── Rubber Solid Records ────────────────────────────────────
+    @Transactional
+    public RubberSolidRecordResponse createRubberSolidRecord(RubberSolidRecordRequest request) {
+        Load load = findLoadById(request.getLoadId());
+        RubberSolidRecord record = RubberSolidMapper.toEntity(request, load);
+        return RubberSolidMapper.toResponse(rubberSolidRecordRepository.save(record));
+    }
+
+    public RubberSolidRecordResponse getRubberSolidRecord(String id) {
+        return RubberSolidMapper.toResponse(findRubberSolidRecordById(id));
+    }
+
+    public List<RubberSolidRecordResponse> getRubberSolidRecordsByLoad(String loadId) {
+        findLoadById(loadId);
+        return rubberSolidRecordRepository.findByLoad_LoadId(loadId).stream()
+                .map(RubberSolidMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public PageResponse<RubberSolidRecordResponse> getAllRubberSolidRecords(
+            LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        Specification<RubberSolidRecord> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            if (from != null) predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from));
+            if (to != null) predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to));
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return PageResponse.from(rubberSolidRecordRepository.findAll(spec, pageable).map(RubberSolidMapper::toResponse));
+    }
+
+    @Transactional
+    public RubberSolidRecordResponse updateRubberSolidRecord(String id, RubberSolidRecordRequest request) {
+        RubberSolidRecord record = findRubberSolidRecordById(id);
+        Load load = findLoadById(request.getLoadId());
+        record.setLoad(load);
+        record.setMassKg(request.getMassKg());
+        record.setTimestamp(request.getTimestamp());
+        return RubberSolidMapper.toResponse(rubberSolidRecordRepository.save(record));
+    }
+
+    @Transactional
+    public void deleteRubberSolidRecord(String id) {
+        rubberSolidRecordRepository.delete(findRubberSolidRecordById(id));
+    }
+
+    public RubberLoadSummaryResponse getRubberLoadSummary(String loadId) {
+        Load load = findLoadById(loadId);
+        List<Object[]> rows = rubberSolidRecordRepository.aggregateByLoadId(loadId);
+        Object[] agg = rows.isEmpty() ? new Object[]{BigDecimal.ZERO, 0L, null} : rows.get(0);
+        return RubberLoadSummaryResponse.builder()
+                .loadId(load.getLoadId())
+                .loadType(load.getLoadType())
+                .status(load.getStatus())
+                .startDate(load.getStartDate())
+                .totalMassKg(agg[0] instanceof BigDecimal ? (BigDecimal) agg[0] : new BigDecimal(agg[0].toString()))
+                .recordCount(((Number) agg[1]).intValue())
+                .lastCollectionAt((LocalDateTime) agg[2])
+                .build();
+    }
+
+    public List<VolumeTrendResponse> getRubberLoadTrends(String loadId, int days) {
+        findLoadById(loadId);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        List<RubberSolidRecord> records = rubberSolidRecordRepository.findByLoad_LoadId(loadId).stream()
+                .filter(r -> r.getTimestamp() != null && !r.getTimestamp().isBefore(cutoff))
+                .sorted(Comparator.comparing(RubberSolidRecord::getTimestamp))
+                .collect(Collectors.toList());
+
+        Map<String, BigDecimal> sortedTotals = records.stream()
+            .collect(Collectors.groupingBy(
+                r -> r.getTimestamp().toLocalDate().format(DateTimeFormatter.ofPattern("MMM dd")),
+                java.util.LinkedHashMap::new,
+                Collectors.mapping(RubberSolidRecord::getMassKg, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))
+            ));
+
+        return sortedTotals.entrySet().stream()
+            .map(e -> VolumeTrendResponse.builder()
+                .name(e.getKey())
+                .actual(e.getValue())
+                .target(null)
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    private RubberSolidRecord findRubberSolidRecordById(String id) {
+        return rubberSolidRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RubberSolidRecord", "id", id));
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────
+    private Employee findEmployeeById(String id) {
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
+    }
+
+    private Load findLoadById(String id) {
+        return loadRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Load", "id", id));
+    }
+}

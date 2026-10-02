@@ -3,7 +3,7 @@ package com.madukotawatte.erp.controller;
 import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.labour.LabourRequest;
 import com.madukotawatte.erp.dto.labour.LabourResponse;
-import com.madukotawatte.erp.service.DailyOperationsService;
+import com.madukotawatte.erp.service.LabourService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -22,25 +22,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LabourController {
 
-    private final DailyOperationsService dailyOperationsService;
+    private final LabourService labourService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<LabourResponse> createLabour(@Valid @RequestBody LabourRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(dailyOperationsService.createLabour(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(labourService.createLabour(request));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<LabourResponse> getLabour(@PathVariable String id) {
-        return ResponseEntity.ok(dailyOperationsService.getLabour(id));
+        return ResponseEntity.ok(labourService.getLabour(id));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<PageResponse<LabourResponse>> getAllLabour(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllLabour(pageable));
+        return ResponseEntity.ok(labourService.getAllLabour(pageable));
     }
 
     @GetMapping("/range")
@@ -48,20 +48,20 @@ public class LabourController {
     public ResponseEntity<List<LabourResponse>> getLabourByRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
-        return ResponseEntity.ok(dailyOperationsService.getLabourByDateRange(from, to));
+        return ResponseEntity.ok(labourService.getLabourByDateRange(from, to));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<LabourResponse> updateLabour(
             @PathVariable String id, @Valid @RequestBody LabourRequest request) {
-        return ResponseEntity.ok(dailyOperationsService.updateLabour(id, request));
+        return ResponseEntity.ok(labourService.updateLabour(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteLabour(@PathVariable String id) {
-        dailyOperationsService.deleteLabour(id);
+        labourService.deleteLabour(id);
         return ResponseEntity.noContent().build();
     }
 }

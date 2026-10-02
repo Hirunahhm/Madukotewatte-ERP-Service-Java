@@ -4,7 +4,7 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.sales.SalesLatexRequest;
 import com.madukotawatte.erp.dto.sales.SalesLatexResponse;
 import com.madukotawatte.erp.dto.sales.SalesLatexUpdateRequest;
-import com.madukotawatte.erp.service.FinanceService;
+import com.madukotawatte.erp.service.SalesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -22,32 +22,32 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class SalesLatexController {
 
-    private final FinanceService financeService;
+    private final SalesService salesService;
 
     @PostMapping
     public ResponseEntity<SalesLatexResponse> createSalesLatex(@Valid @RequestBody SalesLatexRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.createSalesLatex(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(salesService.createSalesLatex(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SalesLatexResponse> getSalesLatex(@PathVariable String id) {
-        return ResponseEntity.ok(financeService.getSalesLatex(id));
+        return ResponseEntity.ok(salesService.getSalesLatex(id));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<SalesLatexResponse>> getAllSalesLatex(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getAllSalesLatex(pageable));
+        return ResponseEntity.ok(salesService.getAllSalesLatex(pageable));
     }
 
     @GetMapping("/unpaid")
     public ResponseEntity<List<SalesLatexResponse>> getUnpaidSales() {
-        return ResponseEntity.ok(financeService.getUnpaidSales());
+        return ResponseEntity.ok(salesService.getUnpaidSales());
     }
 
     @PutMapping("/{id}/payment")
     public ResponseEntity<SalesLatexResponse> markPaymentReceived(
-            @PathVariable String id, @RequestBody SalesLatexUpdateRequest request) {
-        return ResponseEntity.ok(financeService.markPaymentReceived(id, request));
+            @PathVariable String id, @Valid @RequestBody SalesLatexUpdateRequest request) {
+        return ResponseEntity.ok(salesService.markPaymentReceived(id, request));
     }
 }

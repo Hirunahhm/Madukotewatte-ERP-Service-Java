@@ -1,6 +1,7 @@
 package com.madukotawatte.erp.service;
 
 import com.madukotawatte.erp.dto.dashboard.*;
+import com.madukotawatte.erp.dto.account.AccountBalanceResponse;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanBalanceResponse;
 import com.madukotawatte.erp.dto.monetary.AssetBalanceResponse;
 import com.madukotawatte.erp.entity.*;
@@ -36,31 +37,18 @@ public class DashboardService {
     private final SalesLatexRepository salesLatexRepository;
     private final EmployeeLoanRepository employeeLoanRepository;
     private final EmployeeTransactionRepository employeeTransactionRepository;
-    private final MonetaryAssetTransactionRepository monetaryAssetTransactionRepository;
-    private final EstateLoanTransactionRepository estateLoanTransactionRepository;
+    private final LedgerService ledgerService;
 
     public DashboardSummaryResponse getSummary() {
-        // Asset balances
-        List<AssetBalanceResponse> assetBalances = monetaryAssetTransactionRepository.findBalanceByAssetType()
-                .stream()
-                .map(row -> AssetBalanceResponse.builder()
-                        .assetType((String) row[0])
-                        .balance((BigDecimal) row[1])
-                        .build())
+        // Cash/bank balances and credit-card amounts owed come from the account ledger (Wave 3 rewrites this page)
+        List<AccountBalanceResponse> balances = ledgerService.getBalances(null);
+        List<AssetBalanceResponse> assetBalances = balances.stream()
+                .filter(b -> b.getType() != AccountType.CREDIT_CARD)
+                .map(b -> AssetBalanceResponse.builder().assetType(b.getAccountCode()).balance(b.getBalance()).build())
                 .collect(Collectors.toList());
-
-        // Loan balances
-        List<String> loanTypes = List.of("credit-card - Peoples", "credit-card - Sampath");
-        List<EstateLoanBalanceResponse> loanBalances = loanTypes.stream()
-                .map(loanType -> {
-                    List<EstateLoanTransaction> transactions = estateLoanTransactionRepository.findByLoanTypeOrderByCreatedAtAsc(loanType);
-                    BigDecimal balance = transactions.isEmpty() ? BigDecimal.ZERO
-                            : transactions.get(transactions.size() - 1).getNewAmount();
-                    return EstateLoanBalanceResponse.builder()
-                            .loanType(loanType)
-                            .balance(balance)
-                            .build();
-                })
+        List<EstateLoanBalanceResponse> loanBalances = balances.stream()
+                .filter(b -> b.getType() == AccountType.CREDIT_CARD)
+                .map(b -> EstateLoanBalanceResponse.builder().loanType(b.getAccountCode()).balance(b.getBalance().negate()).build())
                 .collect(Collectors.toList());
 
         // Active employee loans count

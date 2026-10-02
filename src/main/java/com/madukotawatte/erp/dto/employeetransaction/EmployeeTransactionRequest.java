@@ -16,7 +16,7 @@ public class EmployeeTransactionRequest {
     @NotBlank
     private String type;
 
-    private String paymentType;
+    private String accountCode;
 
     @NotNull
     @Positive

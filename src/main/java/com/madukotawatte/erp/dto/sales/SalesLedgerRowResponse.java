@@ -19,5 +19,5 @@ public class SalesLedgerRowResponse {
     private LocalDate saleDate;
     private BigDecimal amount;
     private String status;
-    private String paymentType;
+    private String accountCode;
 }

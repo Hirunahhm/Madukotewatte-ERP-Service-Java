@@ -23,4 +23,7 @@ public class EstateLoanRequest {
 
     @PositiveOrZero
     private BigDecimal interestRate;
+
+    /** Optional: cash/bank account the borrowed money was paid into (posts an ESTATE_LOAN_RECEIPT). */
+    private String receivedIntoAccountCode;
 }

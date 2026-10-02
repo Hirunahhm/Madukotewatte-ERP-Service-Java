@@ -15,7 +15,7 @@ public class EmployeeTransactionMapper {
         transaction.setTransactionRecordId(UUID.randomUUID().toString());
         transaction.setEmployee(employee);
         transaction.setType(request.getType());
-        transaction.setPaymentType(request.getPaymentType());
+        transaction.setAccountCode(request.getAccountCode());
         transaction.setAmount(request.getAmount());
         transaction.setTimestamp(request.getTimestamp());
         return transaction;
@@ -27,7 +27,7 @@ public class EmployeeTransactionMapper {
                 .employeeId(transaction.getEmployee().getEmployeeId())
                 .employeeName(transaction.getEmployee().getName())
                 .type(transaction.getType())
-                .paymentType(transaction.getPaymentType())
+                .accountCode(transaction.getAccountCode())
                 .amount(transaction.getAmount())
                 .timestamp(transaction.getTimestamp())
                 .createdAt(transaction.getCreatedAt())

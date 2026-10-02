@@ -6,14 +6,17 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
 public class ExpenseRequest {
+
     @NotBlank
     private String type;
 
-    private String paymentType;
+    /** financial_accounts.code to pay from (cash, bank or credit card). Required when the expense is paid. */
+    private String accountCode;
 
     @NotNull
     @Positive
@@ -22,8 +25,9 @@ public class ExpenseRequest {
     @NotNull
     private LocalDateTime timestamp;
 
-    private String monetaryTransactionId;
-    private String estateLoanTransactionId;
+    /** Day the money left the account; defaults to the expense date (create) or the existing payment date (update). */
+    private LocalDate paymentDate;
 
-    private Boolean isPaid = true;
+    /** Create: null means paid. Update: null keeps the current paid state. */
+    private Boolean isPaid;
 }

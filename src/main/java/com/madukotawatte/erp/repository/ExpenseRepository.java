@@ -8,8 +8,11 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, String>, JpaSpecificationExecutor<Expense> {
     Page<Expense> findByTimestampBetween(LocalDateTime from, LocalDateTime to, Pageable pageable);
+
+    List<Expense> findByReferenceTypeAndReferenceId(String referenceType, String referenceId);
 }

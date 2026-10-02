@@ -479,7 +479,7 @@ class EmployeeControllerTest {
         void asAdmin_returns200() throws Exception {
             EmployeeTransactionResponse txn = EmployeeTransactionResponse.builder()
                     .transactionRecordId("txn-001").employeeId(EMP_ID).employeeName("Nimal Perera")
-                    .type("Advance").paymentType("cash").amount(new BigDecimal("5000.00"))
+                    .type("Advance").accountCode("Cash").amount(new BigDecimal("5000.00"))
                     .timestamp(LocalDateTime.now()).createdAt(LocalDateTime.now())
                     .build();
             PageResponse<EmployeeTransactionResponse> page = PageResponse.<EmployeeTransactionResponse>builder()
@@ -492,7 +492,7 @@ class EmployeeControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content[0].transactionRecordId").value("txn-001"))
                     .andExpect(jsonPath("$.content[0].type").value("Advance"))
-                    .andExpect(jsonPath("$.content[0].paymentType").value("cash"));
+                    .andExpect(jsonPath("$.content[0].accountCode").value("Cash"));
         }
 
         @Test

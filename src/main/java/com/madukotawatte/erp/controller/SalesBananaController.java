@@ -4,7 +4,7 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.sales.SalesBananaRequest;
 import com.madukotawatte.erp.dto.sales.SalesBananaResponse;
 import com.madukotawatte.erp.dto.sales.SalesMarkPaidRequest;
-import com.madukotawatte.erp.service.FinanceService;
+import com.madukotawatte.erp.service.SalesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -20,27 +20,27 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class SalesBananaController {
 
-    private final FinanceService financeService;
+    private final SalesService salesService;
 
     @PostMapping
     public ResponseEntity<SalesBananaResponse> createSalesBanana(@Valid @RequestBody SalesBananaRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.createSalesBanana(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(salesService.createSalesBanana(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SalesBananaResponse> getSalesBanana(@PathVariable String id) {
-        return ResponseEntity.ok(financeService.getSalesBanana(id));
+        return ResponseEntity.ok(salesService.getSalesBanana(id));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<SalesBananaResponse>> getAllSalesBanana(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getAllSalesBanana(pageable));
+        return ResponseEntity.ok(salesService.getAllSalesBanana(pageable));
     }
 
     @PutMapping("/{id}/payment")
     public ResponseEntity<SalesBananaResponse> markPaid(
             @PathVariable String id, @Valid @RequestBody SalesMarkPaidRequest request) {
-        return ResponseEntity.ok(financeService.markSalesBananaPaid(id, request));
+        return ResponseEntity.ok(salesService.markSalesBananaPaid(id, request));
     }
 }

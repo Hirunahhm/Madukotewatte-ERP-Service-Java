@@ -5,7 +5,7 @@ import com.madukotawatte.erp.dto.finance.CategoryTotalResponse;
 import com.madukotawatte.erp.dto.finance.TrendPointResponse;
 import com.madukotawatte.erp.dto.sales.SalesLedgerRowResponse;
 import com.madukotawatte.erp.dto.sales.SalesSummaryResponse;
-import com.madukotawatte.erp.service.FinanceService;
+import com.madukotawatte.erp.service.SalesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,7 +23,7 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class FinancialsController {
 
-    private final FinanceService financeService;
+    private final SalesService salesService;
 
     @GetMapping("/ledger")
     public ResponseEntity<PageResponse<SalesLedgerRowResponse>> getSalesLedger(
@@ -32,26 +32,26 @@ public class FinancialsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getSalesLedger(category, status, from, to, pageable));
+        return ResponseEntity.ok(salesService.getSalesLedger(category, status, from, to, pageable));
     }
 
     @GetMapping("/summary")
     public ResponseEntity<SalesSummaryResponse> getSalesSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(financeService.getSalesSummary(from, to));
+        return ResponseEntity.ok(salesService.getSalesSummary(from, to));
     }
 
     @GetMapping("/distribution")
     public ResponseEntity<List<CategoryTotalResponse>> getSalesDistribution(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(financeService.getSalesDistribution(from, to));
+        return ResponseEntity.ok(salesService.getSalesDistribution(from, to));
     }
 
     @GetMapping("/trend")
     public ResponseEntity<List<TrendPointResponse>> getSalesTrend(
             @RequestParam(defaultValue = "month") String scale) {
-        return ResponseEntity.ok(financeService.getSalesTrend(scale));
+        return ResponseEntity.ok(salesService.getSalesTrend(scale));
     }
 }

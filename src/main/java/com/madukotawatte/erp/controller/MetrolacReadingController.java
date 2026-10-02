@@ -3,7 +3,7 @@ package com.madukotawatte.erp.controller;
 import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.metrolac.MetrolacReadingRequest;
 import com.madukotawatte.erp.dto.metrolac.MetrolacReadingResponse;
-import com.madukotawatte.erp.service.DailyOperationsService;
+import com.madukotawatte.erp.service.ProductionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -21,38 +21,38 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
 public class MetrolacReadingController {
 
-    private final DailyOperationsService dailyOperationsService;
+    private final ProductionService productionService;
 
     @PostMapping
     public ResponseEntity<MetrolacReadingResponse> createMetrolacReading(@Valid @RequestBody MetrolacReadingRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(dailyOperationsService.createMetrolacReading(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(productionService.createMetrolacReading(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<MetrolacReadingResponse> getMetrolacReading(@PathVariable String id) {
-        return ResponseEntity.ok(dailyOperationsService.getMetrolacReading(id));
+        return ResponseEntity.ok(productionService.getMetrolacReading(id));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<MetrolacReadingResponse>> getAllMetrolacReadings(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllMetrolacReadings(pageable));
+        return ResponseEntity.ok(productionService.getAllMetrolacReadings(pageable));
     }
 
     @GetMapping("/load/{loadId}")
     public ResponseEntity<List<MetrolacReadingResponse>> getMetrolacReadingsByLoad(@PathVariable String loadId) {
-        return ResponseEntity.ok(dailyOperationsService.getMetrolacReadingsByLoad(loadId));
+        return ResponseEntity.ok(productionService.getMetrolacReadingsByLoad(loadId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<MetrolacReadingResponse> updateMetrolacReading(
             @PathVariable String id, @Valid @RequestBody MetrolacReadingRequest request) {
-        return ResponseEntity.ok(dailyOperationsService.updateMetrolacReading(id, request));
+        return ResponseEntity.ok(productionService.updateMetrolacReading(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMetrolacReading(@PathVariable String id) {
-        dailyOperationsService.deleteMetrolacReading(id);
+        productionService.deleteMetrolacReading(id);
         return ResponseEntity.noContent().build();
     }
 }

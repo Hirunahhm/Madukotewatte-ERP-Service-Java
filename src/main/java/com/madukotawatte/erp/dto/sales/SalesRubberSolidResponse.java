@@ -22,7 +22,9 @@ public class SalesRubberSolidResponse {
     private BigDecimal totalAmount;
     private Boolean isPaid;
     private String status;
-    private String paymentType;
+    private String accountCode;
+    private LocalDate paymentDate;
+    private String transactionId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

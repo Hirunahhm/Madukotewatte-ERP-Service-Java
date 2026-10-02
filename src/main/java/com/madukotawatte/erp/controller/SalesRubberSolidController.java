@@ -4,7 +4,7 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.sales.SalesMarkPaidRequest;
 import com.madukotawatte.erp.dto.sales.SalesRubberSolidRequest;
 import com.madukotawatte.erp.dto.sales.SalesRubberSolidResponse;
-import com.madukotawatte.erp.service.FinanceService;
+import com.madukotawatte.erp.service.SalesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -20,27 +20,27 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class SalesRubberSolidController {
 
-    private final FinanceService financeService;
+    private final SalesService salesService;
 
     @PostMapping
     public ResponseEntity<SalesRubberSolidResponse> createSalesRubberSolid(@Valid @RequestBody SalesRubberSolidRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.createSalesRubberSolid(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(salesService.createSalesRubberSolid(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SalesRubberSolidResponse> getSalesRubberSolid(@PathVariable String id) {
-        return ResponseEntity.ok(financeService.getSalesRubberSolid(id));
+        return ResponseEntity.ok(salesService.getSalesRubberSolid(id));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<SalesRubberSolidResponse>> getAllSalesRubberSolid(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getAllSalesRubberSolid(pageable));
+        return ResponseEntity.ok(salesService.getAllSalesRubberSolid(pageable));
     }
 
     @PutMapping("/{id}/payment")
     public ResponseEntity<SalesRubberSolidResponse> markPaid(
             @PathVariable String id, @Valid @RequestBody SalesMarkPaidRequest request) {
-        return ResponseEntity.ok(financeService.markSalesRubberSolidPaid(id, request));
+        return ResponseEntity.ok(salesService.markSalesRubberSolidPaid(id, request));
     }
 }

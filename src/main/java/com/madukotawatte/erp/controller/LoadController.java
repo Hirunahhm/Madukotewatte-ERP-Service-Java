@@ -5,7 +5,7 @@ import com.madukotawatte.erp.dto.load.LoadRequest;
 import com.madukotawatte.erp.dto.load.LoadResponse;
 import com.madukotawatte.erp.dto.load.LoadSummaryResponse;
 import com.madukotawatte.erp.dto.load.VolumeTrendResponse;
-import com.madukotawatte.erp.service.DailyOperationsService;
+import com.madukotawatte.erp.service.ProductionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -23,24 +23,24 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class LoadController {
 
-    private final DailyOperationsService dailyOperationsService;
+    private final ProductionService productionService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<LoadResponse> createLoad(@Valid @RequestBody LoadRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(dailyOperationsService.createLoad(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(productionService.createLoad(request));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<LoadResponse> getLoad(@PathVariable String id) {
-        return ResponseEntity.ok(dailyOperationsService.getLoad(id));
+        return ResponseEntity.ok(productionService.getLoad(id));
     }
 
     @GetMapping("/{id}/summary")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<LoadSummaryResponse> getLoadSummary(@PathVariable String id) {
-        return ResponseEntity.ok(dailyOperationsService.getLoadSummary(id));
+        return ResponseEntity.ok(productionService.getLoadSummary(id));
     }
 
     @GetMapping("/{id}/trends")
@@ -48,7 +48,7 @@ public class LoadController {
     public ResponseEntity<java.util.List<VolumeTrendResponse>> getLoadTrends(
             @PathVariable String id,
             @RequestParam(defaultValue = "7") int days) {
-        return ResponseEntity.ok(dailyOperationsService.getLoadTrends(id, days));
+        return ResponseEntity.ok(productionService.getLoadTrends(id, days));
     }
 
     @GetMapping
@@ -56,7 +56,7 @@ public class LoadController {
     public ResponseEntity<PageResponse<LoadResponse>> getAllLoads(
             @RequestParam(required = false) String loadType,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllLoads(loadType, pageable));
+        return ResponseEntity.ok(productionService.getAllLoads(loadType, pageable));
     }
 
     @GetMapping("/range")
@@ -65,19 +65,19 @@ public class LoadController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getLoadsByDateRange(from, to, pageable));
+        return ResponseEntity.ok(productionService.getLoadsByDateRange(from, to, pageable));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<LoadResponse> updateLoad(@PathVariable String id, @Valid @RequestBody LoadRequest request) {
-        return ResponseEntity.ok(dailyOperationsService.updateLoad(id, request));
+        return ResponseEntity.ok(productionService.updateLoad(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteLoad(@PathVariable String id) {
-        dailyOperationsService.deleteLoad(id);
+        productionService.deleteLoad(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -3,7 +3,7 @@ package com.madukotawatte.erp.controller;
 import com.madukotawatte.erp.dto.calendar.CalendarRequest;
 import com.madukotawatte.erp.dto.calendar.CalendarResponse;
 import com.madukotawatte.erp.dto.common.PageResponse;
-import com.madukotawatte.erp.service.DailyOperationsService;
+import com.madukotawatte.erp.service.CalendarService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -21,25 +21,25 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class CalendarController {
 
-    private final DailyOperationsService dailyOperationsService;
+    private final CalendarService calendarService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<CalendarResponse> createOrUpdateCalendar(@Valid @RequestBody CalendarRequest request) {
-        return ResponseEntity.ok(dailyOperationsService.createOrUpdateCalendar(request));
+        return ResponseEntity.ok(calendarService.createOrUpdateCalendar(request));
     }
 
     @GetMapping("/date/{date}")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<CalendarResponse> getCalendarByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseEntity.ok(dailyOperationsService.getCalendarByDate(date));
+        return ResponseEntity.ok(calendarService.getCalendarByDate(date));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
     public ResponseEntity<PageResponse<CalendarResponse>> getAllCalendars(
             @PageableDefault(size = 31) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllCalendars(pageable));
+        return ResponseEntity.ok(calendarService.getAllCalendars(pageable));
     }
 }

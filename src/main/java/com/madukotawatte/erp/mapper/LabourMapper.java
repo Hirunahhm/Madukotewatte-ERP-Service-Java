@@ -24,7 +24,7 @@ public class LabourMapper {
         labour.setWorkType(request.getWorkType());
         labour.setDescription(request.getDescription());
         labour.setTimestamp(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now());
-        labour.setPaymentType(request.getPaymentType());
+        labour.setAccountCode(request.getAccountCode());
         return labour;
     }
 
@@ -42,7 +42,7 @@ public class LabourMapper {
                 .workType(labour.getWorkType())
                 .description(labour.getDescription())
                 .timestamp(labour.getTimestamp())
-                .paymentType(labour.getPaymentType())
+                .accountCode(labour.getAccountCode())
                 .createdAt(labour.getCreatedAt())
                 .updatedAt(labour.getUpdatedAt())
                 .build();

@@ -24,35 +24,35 @@ public class SalesLedgerRepository {
             SELECT sale_id, 'latex' AS category, load_id, CAST(created_at AS date) AS sale_date,
                    total_amount AS amount,
                    CASE WHEN is_payment_received THEN 'paid' ELSE 'pending' END AS status,
-                   NULL AS payment_type
+                   account_code AS payment_type
             FROM sales_latex
             WHERE (CAST(:category AS varchar) IS NULL OR CAST(:category AS varchar) = 'latex')
               AND (CAST(:status AS varchar) IS NULL OR (CAST(:status AS varchar) = 'paid') = is_payment_received)
               AND (CAST(:from AS date) IS NULL OR CAST(created_at AS date) >= CAST(:from AS date))
               AND (CAST(:to AS date) IS NULL OR CAST(created_at AS date) <= CAST(:to AS date))
             UNION ALL
-            SELECT sale_id, 'rubber-solid', load_id, sale_date, (mass * unit_price), status, payment_type
+            SELECT sale_id, 'rubber-solid', load_id, sale_date, (mass * unit_price), status, account_code
             FROM sales_rubber_solid
             WHERE (CAST(:category AS varchar) IS NULL OR CAST(:category AS varchar) = 'rubber-solid')
               AND (CAST(:status AS varchar) IS NULL OR status = CAST(:status AS varchar))
               AND (CAST(:from AS date) IS NULL OR sale_date >= CAST(:from AS date))
               AND (CAST(:to AS date) IS NULL OR sale_date <= CAST(:to AS date))
             UNION ALL
-            SELECT sale_id, 'manioc', load_id, sale_date, (mass * unit_price), status, payment_type
+            SELECT sale_id, 'manioc', load_id, sale_date, (mass * unit_price), status, account_code
             FROM sales_manioc
             WHERE (CAST(:category AS varchar) IS NULL OR CAST(:category AS varchar) = 'manioc')
               AND (CAST(:status AS varchar) IS NULL OR status = CAST(:status AS varchar))
               AND (CAST(:from AS date) IS NULL OR sale_date >= CAST(:from AS date))
               AND (CAST(:to AS date) IS NULL OR sale_date <= CAST(:to AS date))
             UNION ALL
-            SELECT sale_id, 'coconut', load_id, sale_date, (mass * unit_price), status, payment_type
+            SELECT sale_id, 'coconut', load_id, sale_date, (mass * unit_price), status, account_code
             FROM sales_coconut
             WHERE (CAST(:category AS varchar) IS NULL OR CAST(:category AS varchar) = 'coconut')
               AND (CAST(:status AS varchar) IS NULL OR status = CAST(:status AS varchar))
               AND (CAST(:from AS date) IS NULL OR sale_date >= CAST(:from AS date))
               AND (CAST(:to AS date) IS NULL OR sale_date <= CAST(:to AS date))
             UNION ALL
-            SELECT sale_id, 'banana', load_id, sale_date, (mass * unit_price), status, payment_type
+            SELECT sale_id, 'banana', load_id, sale_date, (mass * unit_price), status, account_code
             FROM sales_banana
             WHERE (CAST(:category AS varchar) IS NULL OR CAST(:category AS varchar) = 'banana')
               AND (CAST(:status AS varchar) IS NULL OR status = CAST(:status AS varchar))

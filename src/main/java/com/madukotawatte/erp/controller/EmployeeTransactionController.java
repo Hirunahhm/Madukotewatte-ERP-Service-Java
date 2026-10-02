@@ -5,7 +5,7 @@ import com.madukotawatte.erp.dto.employeetransaction.EmployeeLoanDeductionReques
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeSalaryPaymentRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
-import com.madukotawatte.erp.service.FinanceService;
+import com.madukotawatte.erp.service.EmployeeFinanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -21,36 +21,36 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
 public class EmployeeTransactionController {
 
-    private final FinanceService financeService;
+    private final EmployeeFinanceService employeeFinanceService;
 
     @PostMapping
     public ResponseEntity<EmployeeTransactionResponse> createTransaction(
             @Valid @RequestBody EmployeeTransactionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.createEmployeeTransaction(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeeFinanceService.createEmployeeTransaction(request));
     }
 
     @PostMapping("/salary-payment")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EmployeeTransactionResponse> recordSalaryPayment(
             @Valid @RequestBody EmployeeSalaryPaymentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.recordSalaryPayment(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeeFinanceService.recordSalaryPayment(request));
     }
 
     @PostMapping("/loan-deduction")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EmployeeTransactionResponse> applyLoanDeduction(
             @Valid @RequestBody EmployeeLoanDeductionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.applyLoanDeduction(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeeFinanceService.applyLoanDeduction(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeTransactionResponse> getTransaction(@PathVariable String id) {
-        return ResponseEntity.ok(financeService.getEmployeeTransaction(id));
+        return ResponseEntity.ok(employeeFinanceService.getEmployeeTransaction(id));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<EmployeeTransactionResponse>> getAllTransactions(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getAllEmployeeTransactions(pageable));
+        return ResponseEntity.ok(employeeFinanceService.getAllEmployeeTransactions(pageable));
     }
 }

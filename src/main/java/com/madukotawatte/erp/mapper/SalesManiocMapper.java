@@ -18,9 +18,9 @@ public class SalesManiocMapper {
         sale.setSaleDate(request.getSaleDate());
         sale.setMass(request.getMass());
         sale.setUnitPrice(request.getUnitPrice());
-        sale.setIsPaid(request.getIsPaid() != null ? request.getIsPaid() : false);
-        sale.setStatus(request.getStatus() != null ? request.getStatus() : "pending");
-        sale.setPaymentType(request.getPaymentType());
+        // payment is applied by SalesService, which posts the ledger receipt
+        sale.setIsPaid(false);
+        sale.setStatus("pending");
         return sale;
     }
 
@@ -35,7 +35,9 @@ public class SalesManiocMapper {
                 .totalAmount(sale.getMass().multiply(sale.getUnitPrice()))
                 .isPaid(sale.getIsPaid())
                 .status(sale.getStatus())
-                .paymentType(sale.getPaymentType())
+                .accountCode(sale.getAccountCode())
+                .paymentDate(sale.getPaymentDate())
+                .transactionId(sale.getTransaction() != null ? sale.getTransaction().getId() : null)
                 .createdAt(sale.getCreatedAt())
                 .updatedAt(sale.getUpdatedAt())
                 .build();

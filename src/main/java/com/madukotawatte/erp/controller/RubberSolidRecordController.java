@@ -5,7 +5,7 @@ import com.madukotawatte.erp.dto.load.VolumeTrendResponse;
 import com.madukotawatte.erp.dto.rubbersolid.RubberLoadSummaryResponse;
 import com.madukotawatte.erp.dto.rubbersolid.RubberSolidRecordRequest;
 import com.madukotawatte.erp.dto.rubbersolid.RubberSolidRecordResponse;
-import com.madukotawatte.erp.service.DailyOperationsService;
+import com.madukotawatte.erp.service.ProductionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -25,16 +25,16 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
 public class RubberSolidRecordController {
 
-    private final DailyOperationsService dailyOperationsService;
+    private final ProductionService productionService;
 
     @PostMapping
     public ResponseEntity<RubberSolidRecordResponse> createRubberSolidRecord(@Valid @RequestBody RubberSolidRecordRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(dailyOperationsService.createRubberSolidRecord(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(productionService.createRubberSolidRecord(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<RubberSolidRecordResponse> getRubberSolidRecord(@PathVariable String id) {
-        return ResponseEntity.ok(dailyOperationsService.getRubberSolidRecord(id));
+        return ResponseEntity.ok(productionService.getRubberSolidRecord(id));
     }
 
     @GetMapping
@@ -42,35 +42,35 @@ public class RubberSolidRecordController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllRubberSolidRecords(from, to, pageable));
+        return ResponseEntity.ok(productionService.getAllRubberSolidRecords(from, to, pageable));
     }
 
     @GetMapping("/load/{loadId}")
     public ResponseEntity<List<RubberSolidRecordResponse>> getRubberSolidRecordsByLoad(@PathVariable String loadId) {
-        return ResponseEntity.ok(dailyOperationsService.getRubberSolidRecordsByLoad(loadId));
+        return ResponseEntity.ok(productionService.getRubberSolidRecordsByLoad(loadId));
     }
 
     @GetMapping("/load/{loadId}/summary")
     public ResponseEntity<RubberLoadSummaryResponse> getRubberLoadSummary(@PathVariable String loadId) {
-        return ResponseEntity.ok(dailyOperationsService.getRubberLoadSummary(loadId));
+        return ResponseEntity.ok(productionService.getRubberLoadSummary(loadId));
     }
 
     @GetMapping("/load/{loadId}/trends")
     public ResponseEntity<List<VolumeTrendResponse>> getRubberLoadTrends(
             @PathVariable String loadId,
             @RequestParam(defaultValue = "7") int days) {
-        return ResponseEntity.ok(dailyOperationsService.getRubberLoadTrends(loadId, days));
+        return ResponseEntity.ok(productionService.getRubberLoadTrends(loadId, days));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<RubberSolidRecordResponse> updateRubberSolidRecord(
             @PathVariable String id, @Valid @RequestBody RubberSolidRecordRequest request) {
-        return ResponseEntity.ok(dailyOperationsService.updateRubberSolidRecord(id, request));
+        return ResponseEntity.ok(productionService.updateRubberSolidRecord(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRubberSolidRecord(@PathVariable String id) {
-        dailyOperationsService.deleteRubberSolidRecord(id);
+        productionService.deleteRubberSolidRecord(id);
         return ResponseEntity.noContent().build();
     }
 }

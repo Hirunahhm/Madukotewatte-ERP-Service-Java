@@ -4,7 +4,7 @@ import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.sales.SalesManiocRequest;
 import com.madukotawatte.erp.dto.sales.SalesManiocResponse;
 import com.madukotawatte.erp.dto.sales.SalesMarkPaidRequest;
-import com.madukotawatte.erp.service.FinanceService;
+import com.madukotawatte.erp.service.SalesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -20,27 +20,27 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class SalesManiocController {
 
-    private final FinanceService financeService;
+    private final SalesService salesService;
 
     @PostMapping
     public ResponseEntity<SalesManiocResponse> createSalesManioc(@Valid @RequestBody SalesManiocRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.createSalesManioc(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(salesService.createSalesManioc(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SalesManiocResponse> getSalesManioc(@PathVariable String id) {
-        return ResponseEntity.ok(financeService.getSalesManioc(id));
+        return ResponseEntity.ok(salesService.getSalesManioc(id));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<SalesManiocResponse>> getAllSalesManioc(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(financeService.getAllSalesManioc(pageable));
+        return ResponseEntity.ok(salesService.getAllSalesManioc(pageable));
     }
 
     @PutMapping("/{id}/payment")
     public ResponseEntity<SalesManiocResponse> markPaid(
             @PathVariable String id, @Valid @RequestBody SalesMarkPaidRequest request) {
-        return ResponseEntity.ok(financeService.markSalesManiocPaid(id, request));
+        return ResponseEntity.ok(salesService.markSalesManiocPaid(id, request));
     }
 }

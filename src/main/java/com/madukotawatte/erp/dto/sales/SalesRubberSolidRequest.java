@@ -28,5 +28,8 @@ public class SalesRubberSolidRequest {
 
     private String status = "pending";
 
-    private String paymentType;
+    private String accountCode;
+
+    /** Day the money was received; defaults to the sale date. Only used when isPaid=true. */
+    private LocalDate paymentDate;
 }

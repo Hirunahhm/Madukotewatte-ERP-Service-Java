@@ -34,6 +34,8 @@ public class SalesLatexMapper {
                 .totalAmount(sale.getTotalAmount())
                 .isPaymentReceived(sale.getIsPaymentReceived())
                 .transactionId(sale.getTransaction() != null ? sale.getTransaction().getId() : null)
+                .accountCode(sale.getAccountCode())
+                .paymentDate(sale.getPaymentDate())
                 .createdAt(sale.getCreatedAt())
                 .updatedAt(sale.getUpdatedAt())
                 .build();

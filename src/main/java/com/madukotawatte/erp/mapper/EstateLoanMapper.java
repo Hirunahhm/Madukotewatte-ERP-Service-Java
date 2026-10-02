@@ -2,25 +2,12 @@ package com.madukotawatte.erp.mapper;
 
 import com.madukotawatte.erp.dto.estateloan.EstateLoanRequest;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanResponse;
-import com.madukotawatte.erp.dto.estateloan.EstateLoanTransactionResponse;
 import com.madukotawatte.erp.entity.EstateLoan;
-import com.madukotawatte.erp.entity.EstateLoanTransaction;
 
 import java.util.UUID;
 
 public class EstateLoanMapper {
     private EstateLoanMapper() {}
-
-    public static EstateLoanTransactionResponse toResponse(EstateLoanTransaction transaction) {
-        return EstateLoanTransactionResponse.builder()
-                .id(transaction.getId())
-                .loanType(transaction.getLoanType())
-                .transactionType(transaction.getTransactionType())
-                .lastAmount(transaction.getLastAmount())
-                .newAmount(transaction.getNewAmount())
-                .createdAt(transaction.getCreatedAt())
-                .build();
-    }
 
     public static EstateLoan toEntity(EstateLoanRequest request) {
         EstateLoan loan = new EstateLoan();

@@ -5,7 +5,7 @@ import com.madukotawatte.erp.dto.ammonia.AmmoniaRecordRequest;
 import com.madukotawatte.erp.dto.ammonia.AmmoniaRecordResponse;
 import com.madukotawatte.erp.dto.ammonia.AmmoniaUsageResponse;
 import com.madukotawatte.erp.dto.common.PageResponse;
-import com.madukotawatte.erp.service.DailyOperationsService;
+import com.madukotawatte.erp.service.ProductionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -25,26 +25,26 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
 public class AmmoniaRecordController {
 
-    private final DailyOperationsService dailyOperationsService;
+    private final ProductionService productionService;
 
     @PostMapping
     public ResponseEntity<AmmoniaRecordResponse> createAmmoniaRecord(@Valid @RequestBody AmmoniaRecordRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(dailyOperationsService.createAmmoniaRecord(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(productionService.createAmmoniaRecord(request));
     }
 
     @GetMapping("/balance")
     public ResponseEntity<AmmoniaBalanceResponse> getAmmoniaBalance() {
-        return ResponseEntity.ok(dailyOperationsService.getAmmoniaBalance());
+        return ResponseEntity.ok(productionService.getAmmoniaBalance());
     }
 
     @GetMapping("/usage")
     public ResponseEntity<List<AmmoniaUsageResponse>> getAmmoniaUsage(@RequestParam(defaultValue = "7") int days) {
-        return ResponseEntity.ok(dailyOperationsService.getAmmoniaUsage(days));
+        return ResponseEntity.ok(productionService.getAmmoniaUsage(days));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<AmmoniaRecordResponse> getAmmoniaRecord(@PathVariable String id) {
-        return ResponseEntity.ok(dailyOperationsService.getAmmoniaRecord(id));
+        return ResponseEntity.ok(productionService.getAmmoniaRecord(id));
     }
 
     @GetMapping
@@ -53,18 +53,18 @@ public class AmmoniaRecordController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllAmmoniaRecords(type, from, to, pageable));
+        return ResponseEntity.ok(productionService.getAllAmmoniaRecords(type, from, to, pageable));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<AmmoniaRecordResponse> updateAmmoniaRecord(
             @PathVariable String id, @Valid @RequestBody AmmoniaRecordRequest request) {
-        return ResponseEntity.ok(dailyOperationsService.updateAmmoniaRecord(id, request));
+        return ResponseEntity.ok(productionService.updateAmmoniaRecord(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAmmoniaRecord(@PathVariable String id) {
-        dailyOperationsService.deleteAmmoniaRecord(id);
+        productionService.deleteAmmoniaRecord(id);
         return ResponseEntity.noContent().build();
     }
 }

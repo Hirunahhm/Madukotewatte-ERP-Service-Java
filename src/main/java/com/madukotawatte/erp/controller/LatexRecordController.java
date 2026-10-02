@@ -3,7 +3,7 @@ package com.madukotawatte.erp.controller;
 import com.madukotawatte.erp.dto.common.PageResponse;
 import com.madukotawatte.erp.dto.latex.LatexRecordRequest;
 import com.madukotawatte.erp.dto.latex.LatexRecordResponse;
-import com.madukotawatte.erp.service.DailyOperationsService;
+import com.madukotawatte.erp.service.ProductionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -21,38 +21,38 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
 public class LatexRecordController {
 
-    private final DailyOperationsService dailyOperationsService;
+    private final ProductionService productionService;
 
     @PostMapping
     public ResponseEntity<LatexRecordResponse> createLatexRecord(@Valid @RequestBody LatexRecordRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(dailyOperationsService.createLatexRecord(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(productionService.createLatexRecord(request));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<LatexRecordResponse> getLatexRecord(@PathVariable String id) {
-        return ResponseEntity.ok(dailyOperationsService.getLatexRecord(id));
+        return ResponseEntity.ok(productionService.getLatexRecord(id));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<LatexRecordResponse>> getAllLatexRecords(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(dailyOperationsService.getAllLatexRecords(pageable));
+        return ResponseEntity.ok(productionService.getAllLatexRecords(pageable));
     }
 
     @GetMapping("/load/{loadId}")
     public ResponseEntity<List<LatexRecordResponse>> getLatexRecordsByLoad(@PathVariable String loadId) {
-        return ResponseEntity.ok(dailyOperationsService.getLatexRecordsByLoad(loadId));
+        return ResponseEntity.ok(productionService.getLatexRecordsByLoad(loadId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<LatexRecordResponse> updateLatexRecord(
             @PathVariable String id, @Valid @RequestBody LatexRecordRequest request) {
-        return ResponseEntity.ok(dailyOperationsService.updateLatexRecord(id, request));
+        return ResponseEntity.ok(productionService.updateLatexRecord(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteLatexRecord(@PathVariable String id) {
-        dailyOperationsService.deleteLatexRecord(id);
+        productionService.deleteLatexRecord(id);
         return ResponseEntity.noContent().build();
     }
 }

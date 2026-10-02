@@ -25,7 +25,7 @@ public class LabourResponse {
     private String workType;
     private String description;
     private LocalDateTime timestamp;
-    private String paymentType;
+    private String accountCode;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

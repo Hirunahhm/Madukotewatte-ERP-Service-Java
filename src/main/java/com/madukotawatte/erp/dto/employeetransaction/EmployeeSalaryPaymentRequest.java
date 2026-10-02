@@ -13,7 +13,9 @@ public class EmployeeSalaryPaymentRequest {
     @NotBlank
     private String employeeId;
 
-    private String paymentType;
+    /** financial_accounts.code the salary is paid from (cash or bank). */
+    @NotBlank
+    private String accountCode;
 
     @NotNull
     @Positive
