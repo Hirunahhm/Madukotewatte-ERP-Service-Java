@@ -1,6 +1,9 @@
 package com.madukotawatte.erp.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -8,11 +11,15 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -81,6 +88,68 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
+        log.warn("Data integrity violation on {} {}: {}", request.getMethod(), request.getRequestURI(),
+                ex.getMostSpecificCause().getMessage());
+        ApiError error = ApiError.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Conflict")
+                .message("This change conflicts with existing data (the record is referenced elsewhere or already exists)")
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        ApiError error = ApiError.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message("Malformed request body")
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        ApiError error = ApiError.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message("Invalid value for parameter '" + ex.getName() + "'")
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+        ApiError error = ApiError.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Not Found")
+                .message("No such endpoint")
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        ApiError error = ApiError.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.METHOD_NOT_ALLOWED.value())
+                .error("Method Not Allowed")
+                .message("Method " + ex.getMethod() + " is not supported for this endpoint")
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest request) throws Exception {
         // Let Spring Security's ExceptionTranslationFilter handle access/auth exceptions
@@ -89,11 +158,14 @@ public class GlobalExceptionHandler {
                 || ex instanceof org.springframework.security.core.AuthenticationException) {
             throw ex;
         }
+
+        log.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
+
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
-                .message(ex.getMessage())
+                .message("An unexpected error occurred. Please try again or contact support.")
                 .path(request.getRequestURI())
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

@@ -1,5 +1,6 @@
 package com.madukotawatte.erp.security;
 
+import jakarta.annotation.PostConstruct;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -21,6 +22,14 @@ public class JwtTokenProvider {
 
     @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationMs;
+
+    @PostConstruct
+    void validateSecret() {
+        if (jwtSecret == null || jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "app.jwt.secret (JWT_SECRET) must be at least 32 bytes long (64+ characters recommended); refusing to start");
+        }
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
