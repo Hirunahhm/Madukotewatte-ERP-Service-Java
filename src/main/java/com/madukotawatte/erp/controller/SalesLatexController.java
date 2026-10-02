@@ -50,4 +50,21 @@ public class SalesLatexController {
             @PathVariable String id, @Valid @RequestBody SalesLatexUpdateRequest request) {
         return ResponseEntity.ok(salesService.markPaymentReceived(id, request));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SalesLatexResponse> updateSalesLatex(
+            @PathVariable String id, @Valid @RequestBody SalesLatexRequest request) {
+        return ResponseEntity.ok(salesService.updateSalesLatex(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSalesLatex(@PathVariable String id) {
+        salesService.deleteSalesLatex(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/payment/undo")
+    public ResponseEntity<SalesLatexResponse> undoPayment(@PathVariable String id) {
+        return ResponseEntity.ok(salesService.undoSalesLatexPayment(id));
+    }
 }

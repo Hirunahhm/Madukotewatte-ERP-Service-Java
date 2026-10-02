@@ -46,4 +46,10 @@ public class SalesLatex extends BaseEntity {
 
     @Column(name = "payment_date")
     private LocalDate paymentDate;
+
+    @Column(name = "buyer_name", length = 150)
+    private String buyerName;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 }

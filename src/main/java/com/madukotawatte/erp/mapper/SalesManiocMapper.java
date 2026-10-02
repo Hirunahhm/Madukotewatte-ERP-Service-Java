@@ -21,6 +21,8 @@ public class SalesManiocMapper {
         // payment is applied by SalesService, which posts the ledger receipt
         sale.setIsPaid(false);
         sale.setStatus("pending");
+        sale.setBuyerName(request.getBuyerName());
+        sale.setDueDate(request.getDueDate());
         return sale;
     }
 
@@ -38,6 +40,9 @@ public class SalesManiocMapper {
                 .accountCode(sale.getAccountCode())
                 .paymentDate(sale.getPaymentDate())
                 .transactionId(sale.getTransaction() != null ? sale.getTransaction().getId() : null)
+                .buyerName(sale.getBuyerName())
+                .dueDate(sale.getDueDate())
+                .overdue(SalesMapperSupport.isOverdue(sale.getIsPaid(), sale.getDueDate()))
                 .createdAt(sale.getCreatedAt())
                 .updatedAt(sale.getUpdatedAt())
                 .build();

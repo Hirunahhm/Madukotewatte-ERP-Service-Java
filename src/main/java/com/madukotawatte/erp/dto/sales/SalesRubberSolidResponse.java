@@ -27,4 +27,8 @@ public class SalesRubberSolidResponse {
     private String transactionId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String buyerName;
+    private LocalDate dueDate;
+    /** True when unpaid and the due date has passed. */
+    private Boolean overdue;
 }

@@ -3,6 +3,7 @@ package com.madukotawatte.erp.dto.sales;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -32,4 +33,10 @@ public class SalesRubberSolidRequest {
 
     /** Day the money was received; defaults to the sale date. Only used when isPaid=true. */
     private LocalDate paymentDate;
+
+    @Size(max = 150)
+    private String buyerName;
+
+    /** Date the buyer is expected to pay (credit sales). */
+    private LocalDate dueDate;
 }

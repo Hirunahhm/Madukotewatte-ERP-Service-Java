@@ -20,6 +20,8 @@ public class SalesLatexMapper {
         sale.setUnitPrice(request.getUnitPrice());
         sale.setTotalAmount(request.getMass().multiply(request.getUnitPrice()));
         sale.setIsPaymentReceived(false);
+        sale.setBuyerName(request.getBuyerName());
+        sale.setDueDate(request.getDueDate());
         return sale;
     }
 
@@ -36,6 +38,9 @@ public class SalesLatexMapper {
                 .transactionId(sale.getTransaction() != null ? sale.getTransaction().getId() : null)
                 .accountCode(sale.getAccountCode())
                 .paymentDate(sale.getPaymentDate())
+                .buyerName(sale.getBuyerName())
+                .dueDate(sale.getDueDate())
+                .overdue(SalesMapperSupport.isOverdue(sale.getIsPaymentReceived(), sale.getDueDate()))
                 .createdAt(sale.getCreatedAt())
                 .updatedAt(sale.getUpdatedAt())
                 .build();

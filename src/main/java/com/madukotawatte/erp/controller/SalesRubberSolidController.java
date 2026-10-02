@@ -43,4 +43,21 @@ public class SalesRubberSolidController {
             @PathVariable String id, @Valid @RequestBody SalesMarkPaidRequest request) {
         return ResponseEntity.ok(salesService.markSalesRubberSolidPaid(id, request));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SalesRubberSolidResponse> updateSalesRubberSolid(
+            @PathVariable String id, @Valid @RequestBody SalesRubberSolidRequest request) {
+        return ResponseEntity.ok(salesService.updateSalesRubberSolid(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSalesRubberSolid(@PathVariable String id) {
+        salesService.deleteSalesRubberSolid(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/payment/undo")
+    public ResponseEntity<SalesRubberSolidResponse> undoPayment(@PathVariable String id) {
+        return ResponseEntity.ok(salesService.undoSalesRubberSolidPayment(id));
+    }
 }

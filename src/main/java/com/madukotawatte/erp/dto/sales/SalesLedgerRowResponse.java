@@ -20,4 +20,10 @@ public class SalesLedgerRowResponse {
     private BigDecimal amount;
     private String status;
     private String accountCode;
+    /** latex | rubber-solid | manioc | coconut | banana | general - selects the payment/edit endpoints. */
+    private String saleType;
+    private String buyerName;
+    private LocalDate dueDate;
+    private LocalDate paymentDate;
+    private Boolean overdue;
 }
