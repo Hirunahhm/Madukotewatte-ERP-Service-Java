@@ -17,6 +17,13 @@ public class ExpenseResponse {
     private String expenseId;
     private String type;
     private String accountCode;
+    private String payee;
+    private String description;
+    private LocalDate dueDate;
+    /** True when unpaid and the due date has passed. */
+    private Boolean overdue;
+    /** True for expenses created by payroll/labour/loans; these are read-only here. */
+    private Boolean systemManaged;
     private BigDecimal amount;
     private LocalDateTime timestamp;
     /** Ledger row that paid this expense (null while unpaid). */

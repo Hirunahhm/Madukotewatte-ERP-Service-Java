@@ -7,7 +7,9 @@ import com.madukotawatte.erp.dto.expense.ExpenseResponse;
 import com.madukotawatte.erp.dto.finance.CategoryTotalResponse;
 import com.madukotawatte.erp.dto.finance.ExpenseSummaryResponse;
 import com.madukotawatte.erp.dto.finance.TrendPointResponse;
+import com.madukotawatte.erp.dto.finance.PayablesResponse;
 import com.madukotawatte.erp.service.ExpenseService;
+import com.madukotawatte.erp.service.PayablesService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,7 @@ import java.util.List;
 public class ExpenseController {
 
     private final ExpenseService expenseService;
+    private final PayablesService payablesService;
 
     @PostMapping
     public ResponseEntity<ExpenseResponse> createExpense(@Valid @RequestBody ExpenseRequest request) {
@@ -42,11 +45,12 @@ public class ExpenseController {
     @GetMapping
     public ResponseEntity<PageResponse<ExpenseResponse>> getAllExpenses(
             @RequestParam(required = false) String type,
+            @RequestParam(required = false) String payee,
             @RequestParam(required = false) Boolean isPaid,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(expenseService.getAllExpenses(type, isPaid, from, to, pageable));
+        return ResponseEntity.ok(expenseService.getAllExpenses(type, payee, isPaid, from, to, pageable));
     }
 
     @PutMapping("/{id}")
@@ -65,6 +69,25 @@ public class ExpenseController {
     public ResponseEntity<ExpenseResponse> markExpensePaid(
             @PathVariable String id, @Valid @RequestBody ExpenseMarkPaidRequest request) {
         return ResponseEntity.ok(expenseService.markExpensePaid(id, request));
+    }
+
+    @PostMapping("/{id}/payment/undo")
+    public ResponseEntity<ExpenseResponse> undoExpensePayment(@PathVariable String id) {
+        return ResponseEntity.ok(expenseService.undoExpensePayment(id));
+    }
+
+    /** Standard expense categories (the only allowed values for an expense type). */
+    @GetMapping("/categories")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<List<String>> getCategories() {
+        return ResponseEntity.ok(expenseService.getCategories());
+    }
+
+    @GetMapping("/payables")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<PayablesResponse> getPayables(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate asOf) {
+        return ResponseEntity.ok(payablesService.getPayables(asOf));
     }
 
     @GetMapping("/summary")
