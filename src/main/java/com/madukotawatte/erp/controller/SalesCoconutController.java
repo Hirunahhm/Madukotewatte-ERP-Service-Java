@@ -43,4 +43,21 @@ public class SalesCoconutController {
             @PathVariable String id, @Valid @RequestBody SalesMarkPaidRequest request) {
         return ResponseEntity.ok(salesService.markSalesCoconutPaid(id, request));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SalesCoconutResponse> updateSalesCoconut(
+            @PathVariable String id, @Valid @RequestBody SalesCoconutRequest request) {
+        return ResponseEntity.ok(salesService.updateSalesCoconut(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSalesCoconut(@PathVariable String id) {
+        salesService.deleteSalesCoconut(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/payment/undo")
+    public ResponseEntity<SalesCoconutResponse> undoPayment(@PathVariable String id) {
+        return ResponseEntity.ok(salesService.undoSalesCoconutPayment(id));
+    }
 }

@@ -43,4 +43,21 @@ public class SalesBananaController {
             @PathVariable String id, @Valid @RequestBody SalesMarkPaidRequest request) {
         return ResponseEntity.ok(salesService.markSalesBananaPaid(id, request));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SalesBananaResponse> updateSalesBanana(
+            @PathVariable String id, @Valid @RequestBody SalesBananaRequest request) {
+        return ResponseEntity.ok(salesService.updateSalesBanana(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSalesBanana(@PathVariable String id) {
+        salesService.deleteSalesBanana(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/payment/undo")
+    public ResponseEntity<SalesBananaResponse> undoPayment(@PathVariable String id) {
+        return ResponseEntity.ok(salesService.undoSalesBananaPayment(id));
+    }
 }

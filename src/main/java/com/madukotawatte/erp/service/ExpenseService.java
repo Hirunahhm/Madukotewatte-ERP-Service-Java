@@ -15,6 +15,7 @@ import com.madukotawatte.erp.exception.BadRequestException;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.ExpenseMapper;
 import com.madukotawatte.erp.repository.ExpenseRepository;
+import com.madukotawatte.erp.service.support.ExpenseCategories;
 import com.madukotawatte.erp.service.support.TrendSupport;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +49,8 @@ public class ExpenseService {
 
         Expense expense = new Expense();
         expense.setExpenseId(UUID.randomUUID().toString());
-        expense.setType(request.getType());
+        expense.setType(ExpenseCategories.require(request.getType()));
+        applyDetails(expense, request);
         expense.setAmount(request.getAmount());
         expense.setTimestamp(request.getTimestamp());
         expense.setIsPaid(isPaid);
@@ -66,7 +68,31 @@ public class ExpenseService {
     }
 
     public PageResponse<ExpenseResponse> getAllExpenses(String type, Boolean isPaid, LocalDateTime from, LocalDateTime to, Pageable pageable) {
-        return PageResponse.from(expenseRepository.findAll(expenseSpec(type, isPaid, from, to), pageable).map(ExpenseMapper::toResponse));
+        return getAllExpenses(type, null, isPaid, from, to, pageable);
+    }
+
+    public PageResponse<ExpenseResponse> getAllExpenses(String type, String payee, Boolean isPaid, LocalDateTime from,
+                                                        LocalDateTime to, Pageable pageable) {
+        Specification<Expense> spec = expenseSpec(type, isPaid, from, to);
+        if (payee != null && !payee.isBlank()) {
+            String pattern = "%" + payee.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("payee")), pattern));
+        }
+        return PageResponse.from(expenseRepository.findAll(spec, pageable).map(ExpenseMapper::toResponse));
+    }
+
+    public List<String> getCategories() {
+        return ExpenseCategories.ALL;
+    }
+
+    private void applyDetails(Expense expense, ExpenseRequest request) {
+        expense.setPayee(blankToNull(request.getPayee()));
+        expense.setDescription(blankToNull(request.getDescription()));
+        expense.setDueDate(request.getDueDate());
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     /**
@@ -93,7 +119,8 @@ public class ExpenseService {
                     && newAccount != null && newAccount.equals(oldTx.getAccountCode())
                     && newDate.equals(oldTx.getTransactionDate()));
 
-        expense.setType(request.getType());
+        expense.setType(ExpenseCategories.require(request.getType()));
+        applyDetails(expense, request);
         expense.setTimestamp(request.getTimestamp());
         if (!moneyUnchanged) {
             if (oldTx != null) {
@@ -134,6 +161,24 @@ public class ExpenseService {
         return ExpenseMapper.toResponse(expenseRepository.save(expense));
     }
 
+    /** Reverses the payment ledger row and returns a user expense to unpaid (payable). */
+    @Transactional
+    public ExpenseResponse undoExpensePayment(String id) {
+        Expense expense = find(id);
+        assertNotSystemManaged(expense);
+        if (!Boolean.TRUE.equals(expense.getIsPaid())) {
+            throw new BadRequestException("This expense has no payment to undo");
+        }
+        if (expense.getTransaction() != null) {
+            ledgerService.reverseIfActive(expense.getTransaction(), "Expense payment undone");
+        }
+        expense.setTransaction(null);
+        expense.setAccountCode(null);
+        expense.setIsPaid(false);
+        expense.setStatus("pending");
+        return ExpenseMapper.toResponse(expenseRepository.save(expense));
+    }
+
     private void pay(Expense expense, String accountCode, LocalDate paidOn) {
         if (accountCode == null || accountCode.isBlank()) {
             throw new BadRequestException("accountCode is required for a paid expense");
@@ -171,7 +216,7 @@ public class ExpenseService {
                                            String description) {
         Expense expense = new Expense();
         expense.setExpenseId(UUID.randomUUID().toString());
-        expense.setType(type);
+        expense.setType(ExpenseCategories.require(type));
         expense.setAmount(amount);
         expense.setTimestamp(timestamp);
         expense.setReferenceType(referenceType);

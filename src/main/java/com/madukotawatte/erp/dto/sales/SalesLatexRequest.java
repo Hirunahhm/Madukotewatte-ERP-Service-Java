@@ -4,9 +4,11 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 public class SalesLatexRequest {
@@ -29,4 +31,10 @@ public class SalesLatexRequest {
     @NotNull
     @Positive
     private BigDecimal unitPrice;
+
+    @Size(max = 150)
+    private String buyerName;
+
+    /** Date the buyer is expected to pay (credit sales). */
+    private LocalDate dueDate;
 }

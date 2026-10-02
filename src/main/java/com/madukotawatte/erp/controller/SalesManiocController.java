@@ -43,4 +43,21 @@ public class SalesManiocController {
             @PathVariable String id, @Valid @RequestBody SalesMarkPaidRequest request) {
         return ResponseEntity.ok(salesService.markSalesManiocPaid(id, request));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SalesManiocResponse> updateSalesManioc(
+            @PathVariable String id, @Valid @RequestBody SalesManiocRequest request) {
+        return ResponseEntity.ok(salesService.updateSalesManioc(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSalesManioc(@PathVariable String id) {
+        salesService.deleteSalesManioc(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/payment/undo")
+    public ResponseEntity<SalesManiocResponse> undoPayment(@PathVariable String id) {
+        return ResponseEntity.ok(salesService.undoSalesManiocPayment(id));
+    }
 }

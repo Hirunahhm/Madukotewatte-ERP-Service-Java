@@ -46,4 +46,10 @@ public class SalesManioc extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_id")
     private MonetaryAssetTransaction transaction;
+
+    @Column(name = "buyer_name", length = 150)
+    private String buyerName;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 }

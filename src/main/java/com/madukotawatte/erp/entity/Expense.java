@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -35,6 +36,17 @@ public class Expense extends BaseEntity {
 
     @Column(name = "reference_id", length = 36)
     private String referenceId;
+
+    // who is owed the money (supplier / contractor); free text
+    @Column(length = 150)
+    private String payee;
+
+    @Column(length = 500)
+    private String description;
+
+    // date the supplier expects payment (credit purchases)
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
     private LocalDateTime timestamp;
 

@@ -14,5 +14,7 @@ import java.util.List;
 public interface ExpenseRepository extends JpaRepository<Expense, String>, JpaSpecificationExecutor<Expense> {
     Page<Expense> findByTimestampBetween(LocalDateTime from, LocalDateTime to, Pageable pageable);
 
+    List<Expense> findByTimestampBefore(LocalDateTime before);
+
     List<Expense> findByReferenceTypeAndReferenceId(String referenceType, String referenceId);
 }
