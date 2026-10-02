@@ -31,6 +31,17 @@ app:
   jwt:
     secret: ${JWT_SECRET:change-this-to-a-very-long-and-secure-random-secret-key-in-production}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # 24 hours
+  estate:
+    latitude: ${ESTATE_LATITUDE:6.916694}
+    longitude: ${ESTATE_LONGITUDE:81.298806}
+    timezone: ${ESTATE_TIMEZONE:Asia/Colombo}
+  weather:
+    forecast-url: https://api.open-meteo.com/v1/forecast
+    archive-url: https://archive-api.open-meteo.com/v1/archive
+    tap-rain-threshold-mm: ${WEATHER_TAP_RAIN_THRESHOLD_MM:1.0}
+    tap-rain-probability-max: ${WEATHER_TAP_RAIN_PROBABILITY_MAX:60}
+    startup-backfill-days: ${WEATHER_STARTUP_BACKFILL_DAYS:730}
+    startup-backfill-enabled: ${WEATHER_STARTUP_BACKFILL_ENABLED:true}
 
 springdoc:
   api-docs:
