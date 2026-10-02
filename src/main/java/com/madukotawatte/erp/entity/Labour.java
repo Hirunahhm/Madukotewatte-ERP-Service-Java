@@ -46,4 +46,9 @@ public class Labour extends BaseEntity {
     // financial_accounts.code the labour was paid from (when paid)
     @Column(name = "account_code", length = 40)
     private String accountCode;
+
+    // set when the labour was paid through a payslip (no separate ledger / expense in that case)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payslip_id")
+    private Payslip payslip;
 }

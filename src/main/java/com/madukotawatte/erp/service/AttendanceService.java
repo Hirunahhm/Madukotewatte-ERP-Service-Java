@@ -8,6 +8,7 @@ import com.madukotawatte.erp.entity.Attendance;
 import com.madukotawatte.erp.entity.Calendar;
 import com.madukotawatte.erp.entity.Employee;
 import com.madukotawatte.erp.entity.EmployeeTransaction;
+import com.madukotawatte.erp.exception.BadRequestException;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.AttendanceMapper;
 import com.madukotawatte.erp.repository.AttendanceRepository;
@@ -91,6 +92,9 @@ public class AttendanceService {
         attendance.setNoWork(request.getNoWork() != null ? request.getNoWork() : "none");
 
         EmployeeTransaction existing = attendance.getEmployeeTransaction();
+        if (existing != null && existing.getPayslip() != null && earningsChanged) {
+            throw new BadRequestException("This attendance has already been paid on a payslip - void the payslip first");
+        }
         if (existing == null) {
             attendance.setEmployeeTransaction(
                     createLatexTapTransactionIfApplicable(employee, request.getNoOfTrees(), request.getTimestamp()));
@@ -115,6 +119,9 @@ public class AttendanceService {
     public void deleteAttendance(String id) {
         Attendance attendance = find(id);
         EmployeeTransaction tapTransaction = attendance.getEmployeeTransaction();
+        if (tapTransaction != null && tapTransaction.getPayslip() != null) {
+            throw new BadRequestException("This attendance has already been paid on a payslip - void the payslip first");
+        }
         attendanceRepository.delete(attendance);
         if (tapTransaction != null && LATEX_TAP.equals(tapTransaction.getType())) {
             attendanceRepository.flush();

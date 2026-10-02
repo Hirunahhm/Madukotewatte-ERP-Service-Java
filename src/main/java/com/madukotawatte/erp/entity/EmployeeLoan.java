@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "employee_loans")
@@ -29,6 +30,14 @@ public class EmployeeLoan extends BaseEntity {
 
     @Column(name = "current_balance", precision = 15, scale = 2)
     private BigDecimal currentBalance;
+
+    @Column(name = "issued_date", nullable = false)
+    private LocalDate issuedDate;
+
+    // ledger row of the EMPLOYEE_LOAN_ISSUE posting (null for pre-ledger loans = opening balances)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_id")
+    private MonetaryAssetTransaction transaction;
 
     @Column(name = "is_active")
     private Boolean isActive = true;

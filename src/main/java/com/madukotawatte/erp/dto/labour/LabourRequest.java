@@ -21,11 +21,11 @@ public class LabourRequest {
     @Positive
     private BigDecimal workedHours;
 
-    @NotNull
+    // optional: defaults to the employee's hourly rate
     @Positive
     private BigDecimal hourlyRate;
 
-    @NotNull
+    // optional: computed server-side as workedHours x hourlyRate when omitted
     @Positive
     private BigDecimal amount;
 

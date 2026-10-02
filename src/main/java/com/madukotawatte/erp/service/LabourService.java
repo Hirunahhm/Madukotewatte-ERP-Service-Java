@@ -18,6 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -40,6 +42,7 @@ public class LabourService {
     @Transactional
     public LabourResponse createLabour(LabourRequest request) {
         Employee employee = findEmployeeById(request.getEmployeeId());
+        resolveAmount(request, employee);
         boolean paid = Boolean.TRUE.equals(request.getIsPaid());
         if (paid && isBlank(request.getAccountCode())) {
             throw new BadRequestException("accountCode is required when isPaid=true");
@@ -71,6 +74,8 @@ public class LabourService {
     public LabourResponse updateLabour(String id, LabourRequest request) {
         Labour labour = findLabourById(id);
         Employee employee = findEmployeeById(request.getEmployeeId());
+        assertNotOnPayslip(labour, "edited");
+        resolveAmount(request, employee);
 
         boolean wasPaid = labour.getEmployeeTransaction() != null;
         boolean wantPaid = Boolean.TRUE.equals(request.getIsPaid());
@@ -110,10 +115,36 @@ public class LabourService {
     @Transactional
     public void deleteLabour(String id) {
         Labour labour = findLabourById(id);
+        assertNotOnPayslip(labour, "deleted");
         if (labour.getEmployeeTransaction() != null) {
             unpay(labour, "Labour deleted");
         }
         labourRepository.delete(labour);
+    }
+
+    /**
+     * Fills in whatever the caller left out: amount = hours x rate, where the rate is the request's hourlyRate or
+     * else the employee's configured hourly rate; with only an amount given the effective rate is derived.
+     */
+    private void resolveAmount(LabourRequest request, Employee employee) {
+        BigDecimal hours = request.getWorkedHours();
+        if (request.getAmount() == null) {
+            BigDecimal rate = request.getHourlyRate() != null ? request.getHourlyRate() : employee.getHourlyRate();
+            if (rate == null || rate.signum() <= 0) {
+                throw new BadRequestException("No hourly rate: send hourlyRate/amount or set the employee's hourly rate");
+            }
+            request.setHourlyRate(rate);
+            request.setAmount(hours.multiply(rate).setScale(2, RoundingMode.HALF_UP));
+        } else if (request.getHourlyRate() == null) {
+            request.setHourlyRate(request.getAmount().divide(hours, 2, RoundingMode.HALF_UP));
+        }
+    }
+
+    private void assertNotOnPayslip(Labour labour, String verb) {
+        if (labour.getPayslip() != null) {
+            throw new BadRequestException("This labour was paid on a payslip and cannot be " + verb
+                    + " - void the payslip first");
+        }
     }
 
     /** Creates the Manual_Labor employee transaction, the ledger payment and the 'Labour' expense. */

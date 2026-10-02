@@ -1,9 +1,7 @@
 package com.madukotawatte.erp.controller;
 
 import com.madukotawatte.erp.dto.common.PageResponse;
-import com.madukotawatte.erp.dto.employeetransaction.EmployeeLoanDeductionRequest;
-import com.madukotawatte.erp.dto.employeetransaction.EmployeeSalaryPaymentRequest;
-import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionRequest;
+import com.madukotawatte.erp.dto.employeetransaction.AdvanceRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
 import com.madukotawatte.erp.service.EmployeeFinanceService;
 import jakarta.validation.Valid;
@@ -23,24 +21,19 @@ public class EmployeeTransactionController {
 
     private final EmployeeFinanceService employeeFinanceService;
 
-    @PostMapping
-    public ResponseEntity<EmployeeTransactionResponse> createTransaction(
-            @Valid @RequestBody EmployeeTransactionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeFinanceService.createEmployeeTransaction(request));
+    /** Gives an advance: posts EMPLOYEE_ADVANCE from the chosen cash/bank account. */
+    @PostMapping("/advances")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<EmployeeTransactionResponse> giveAdvance(@Valid @RequestBody AdvanceRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeeFinanceService.giveAdvance(request));
     }
 
-    @PostMapping("/salary-payment")
+    /** Undoes an advance that has not been recovered (reverses the ledger row). */
+    @DeleteMapping("/advances/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<EmployeeTransactionResponse> recordSalaryPayment(
-            @Valid @RequestBody EmployeeSalaryPaymentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeFinanceService.recordSalaryPayment(request));
-    }
-
-    @PostMapping("/loan-deduction")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<EmployeeTransactionResponse> applyLoanDeduction(
-            @Valid @RequestBody EmployeeLoanDeductionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeFinanceService.applyLoanDeduction(request));
+    public ResponseEntity<Void> deleteAdvance(@PathVariable String id) {
+        employeeFinanceService.deleteAdvance(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")

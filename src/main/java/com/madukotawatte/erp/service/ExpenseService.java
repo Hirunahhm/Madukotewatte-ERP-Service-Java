@@ -300,4 +300,29 @@ public class ExpenseService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
+
+    // ── Payroll hooks (Wave 2a) ──
+
+    /**
+     * Records an already-paid system expense that is linked to a ledger row somebody else already posted
+     * (payroll: the SALARY_PAYMENT row for the NET pay). Posts nothing itself, so the ledger is not double
+     * counted. {@code ledgerRow} may be null when no money moved (net pay of zero).
+     */
+    @Transactional
+    public Expense recordSystemExpenseLinkedToLedger(String type, BigDecimal amount, LocalDateTime timestamp,
+                                                     String accountCode, MonetaryAssetTransaction ledgerRow,
+                                                     String referenceType, String referenceId) {
+        Expense expense = new Expense();
+        expense.setExpenseId(UUID.randomUUID().toString());
+        expense.setType(type);
+        expense.setAmount(amount);
+        expense.setTimestamp(timestamp);
+        expense.setReferenceType(referenceType);
+        expense.setReferenceId(referenceId);
+        expense.setAccountCode(accountCode);
+        expense.setTransaction(ledgerRow);
+        expense.setIsPaid(true);
+        expense.setStatus("paid");
+        return expenseRepository.save(expense);
+    }
 }
