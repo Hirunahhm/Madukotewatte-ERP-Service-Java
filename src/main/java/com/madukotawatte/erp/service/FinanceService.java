@@ -1,6 +1,7 @@
 package com.madukotawatte.erp.service;
 
 import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.employeetransaction.EmployeeLoanDeductionRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeSalaryPaymentRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
@@ -80,6 +81,7 @@ public class FinanceService {
     private final ExpenseRepository expenseRepository;
     private final EmployeeTransactionRepository employeeTransactionRepository;
     private final EmployeeRepository employeeRepository;
+    private final EmployeeLoanRepository employeeLoanRepository;
 
     // ── Monetary Assets ─────────────────────────────────────────
     public List<AssetBalanceResponse> getAssetBalances() {
@@ -906,7 +908,8 @@ public class FinanceService {
     public EmployeeTransactionResponse recordSalaryPayment(EmployeeSalaryPaymentRequest request) {
         Employee employee = employeeRepository.findById(request.getEmployeeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", request.getEmployeeId()));
-        String ledgerAsset = LABOUR_PAYMENT_TO_LEDGER_ASSET.getOrDefault(request.getPaymentType(), "Cash");
+        String ledgerAsset = (request.getPaymentType() != null && !request.getPaymentType().isBlank())
+                ? request.getPaymentType() : "Cash";
         createMonetaryTransactionEntity("money out", ledgerAsset, request.getAmount());
 
         com.madukotawatte.erp.entity.EmployeeTransaction transaction = com.madukotawatte.erp.entity.EmployeeTransaction.builder()
@@ -914,6 +917,41 @@ public class FinanceService {
                 .employee(employee)
                 .type("Salary_Payment")
                 .paymentType(request.getPaymentType())
+                .amount(request.getAmount())
+                .timestamp(request.getTimestamp())
+                .build();
+        return EmployeeTransactionMapper.toResponse(employeeTransactionRepository.save(transaction));
+    }
+
+    /**
+     * Deducts an amount from the employee's single active loan (business rule: at most
+     * one active loan per employee, enforced in WorkforceService.createLoan) and logs it
+     * as a Loan_Payment transaction. This is bookkeeping only — no cash/bank ledger entry,
+     * since the deduction reduces what would otherwise be paid out, it doesn't move money.
+     */
+    @Transactional
+    public EmployeeTransactionResponse applyLoanDeduction(EmployeeLoanDeductionRequest request) {
+        Employee employee = employeeRepository.findById(request.getEmployeeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", request.getEmployeeId()));
+        List<EmployeeLoan> active = employeeLoanRepository.findByEmployee_EmployeeIdAndIsActiveTrue(request.getEmployeeId());
+        if (active.isEmpty()) {
+            throw new BadRequestException("Employee has no active loan");
+        }
+        EmployeeLoan loan = active.get(0);
+        if (request.getAmount().compareTo(loan.getCurrentBalance()) > 0) {
+            throw new InsufficientFundsException("Deduction exceeds the loan's outstanding balance");
+        }
+        loan.setCurrentBalance(loan.getCurrentBalance().subtract(request.getAmount()));
+        if (loan.getCurrentBalance().compareTo(BigDecimal.ZERO) <= 0) {
+            loan.setIsActive(false);
+        }
+        employeeLoanRepository.save(loan);
+
+        com.madukotawatte.erp.entity.EmployeeTransaction transaction = com.madukotawatte.erp.entity.EmployeeTransaction.builder()
+                .transactionRecordId(java.util.UUID.randomUUID().toString())
+                .employee(employee)
+                .type("Loan_Payment")
+                .paymentType(null)
                 .amount(request.getAmount())
                 .timestamp(request.getTimestamp())
                 .build();

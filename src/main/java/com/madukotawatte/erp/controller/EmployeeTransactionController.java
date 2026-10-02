@@ -1,6 +1,7 @@
 package com.madukotawatte.erp.controller;
 
 import com.madukotawatte.erp.dto.common.PageResponse;
+import com.madukotawatte.erp.dto.employeetransaction.EmployeeLoanDeductionRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeSalaryPaymentRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionRequest;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
@@ -33,6 +34,13 @@ public class EmployeeTransactionController {
     public ResponseEntity<EmployeeTransactionResponse> recordSalaryPayment(
             @Valid @RequestBody EmployeeSalaryPaymentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(financeService.recordSalaryPayment(request));
+    }
+
+    @PostMapping("/loan-deduction")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<EmployeeTransactionResponse> applyLoanDeduction(
+            @Valid @RequestBody EmployeeLoanDeductionRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(financeService.applyLoanDeduction(request));
     }
 
     @GetMapping("/{id}")
