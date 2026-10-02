@@ -34,6 +34,13 @@ public class SalesRubberSolid extends BaseEntity {
     @Column(nullable = false, length = 20)
     private String status = "pending";
 
-    @Column(name = "payment_type", length = 50)
-    private String paymentType;
+    @Column(name = "account_code", length = 40)
+    private String accountCode;
+
+    @Column(name = "payment_date")
+    private LocalDate paymentDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_id")
+    private MonetaryAssetTransaction transaction;
 }

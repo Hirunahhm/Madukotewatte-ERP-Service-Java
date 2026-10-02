@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "sales_latex")
@@ -39,4 +40,10 @@ public class SalesLatex extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_id")
     private MonetaryAssetTransaction transaction;
+
+    @Column(name = "account_code", length = 40)
+    private String accountCode;
+
+    @Column(name = "payment_date")
+    private LocalDate paymentDate;
 }

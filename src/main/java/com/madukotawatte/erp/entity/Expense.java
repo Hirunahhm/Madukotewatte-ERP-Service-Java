@@ -18,9 +18,9 @@ public class Expense extends BaseEntity {
     @Column(length = 100)
     private String type;
 
-    // 'Credit Card-Peoples' | 'Cash' | 'Bank Transfer-BOC' | etc. — null until the expense is marked paid
-    @Column(name = "payment_type", length = 40)
-    private String paymentType;
+    // financial_accounts.code the expense was paid from — null until the expense is paid
+    @Column(name = "account_code", length = 40)
+    private String accountCode;
 
     @Column(precision = 15, scale = 2)
     private BigDecimal amount;
@@ -29,9 +29,12 @@ public class Expense extends BaseEntity {
     @JoinColumn(name = "transaction_id")
     private MonetaryAssetTransaction transaction;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "estate_loan_transaction_id")
-    private EstateLoanTransaction estateLoanTransaction;
+    // set on system-created expenses (LABOUR, PAYSLIP, ...) so they can be traced and not double counted
+    @Column(name = "reference_type", length = 40)
+    private String referenceType;
+
+    @Column(name = "reference_id", length = 36)
+    private String referenceId;
 
     private LocalDateTime timestamp;
 

@@ -1,0 +1,25 @@
+package com.madukotawatte.erp.entity;
+
+/** Fixed list of ledger categories (mirrors the CHECK constraint added in V17). */
+public enum LedgerCategory {
+    OPENING_BALANCE,
+    OWNER_CAPITAL,
+    OWNER_DRAWING,
+    TRANSFER,
+    SALE_RECEIPT,
+    OTHER_INCOME,
+    INTEREST_INCOME,
+    EXPENSE_PAYMENT,
+    CREDIT_CARD_PAYMENT,
+    SALARY_PAYMENT,
+    LABOUR_PAYMENT,
+    EMPLOYEE_ADVANCE,
+    EMPLOYEE_LOAN_ISSUE,
+    EMPLOYEE_LOAN_REPAYMENT,
+    ESTATE_LOAN_RECEIPT,
+    ESTATE_LOAN_REPAYMENT,
+    ASSET_PURCHASE,
+    ASSET_DISPOSAL,
+    BANK_CHARGES,
+    ADJUSTMENT
+}

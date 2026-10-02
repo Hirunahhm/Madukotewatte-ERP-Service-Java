@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+/** Movement on a named estate loan (credit cards are ledger accounts since V17). */
 @Entity
 @Table(name = "estate_loan_transactions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -14,12 +15,7 @@ public class EstateLoanTransaction extends BaseEntity {
     @Column(length = 36)
     private String id;
 
-    // Set for legacy fixed-bucket transactions: 'credit-card - Peoples' | 'credit-card - Sampath'
-    @Column(name = "loan_type", length = 30)
-    private String loanType;
-
-    // Set for named-loan transactions (see EstateLoan) — exactly one of loanType/loanId is set
-    @Column(name = "loan_id", length = 36)
+    @Column(name = "loan_id", nullable = false, length = 36)
     private String loanId;
 
     // 'borrow' | 'repay'

@@ -43,7 +43,7 @@ public class Labour extends BaseEntity {
 
     private LocalDateTime timestamp;
 
-    // 'bank_transfer' | 'cash'
-    @Column(name = "payment_type", length = 20)
-    private String paymentType;
+    // financial_accounts.code the labour was paid from (when paid)
+    @Column(name = "account_code", length = 40)
+    private String accountCode;
 }
