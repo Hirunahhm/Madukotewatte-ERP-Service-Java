@@ -6,10 +6,11 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
+/** An advance paid to an employee before pay day. Posts EMPLOYEE_ADVANCE from the chosen cash/bank account. */
 @Data
-public class EmployeeLoanDeductionRequest {
+public class AdvanceRequest {
     @NotBlank
     private String employeeId;
 
@@ -17,6 +18,11 @@ public class EmployeeLoanDeductionRequest {
     @Positive
     private BigDecimal amount;
 
+    @NotBlank
+    private String accountCode;
+
     @NotNull
-    private LocalDateTime timestamp;
+    private LocalDate date;
+
+    private String note;
 }

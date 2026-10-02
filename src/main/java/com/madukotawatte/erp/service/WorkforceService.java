@@ -10,25 +10,20 @@ import com.madukotawatte.erp.dto.employee.EmployeeSummaryResponse;
 import com.madukotawatte.erp.dto.employee.PaymentSummaryResponse;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionResponse;
 import com.madukotawatte.erp.dto.employeetransaction.EmployeeTransactionStatsResponse;
-import com.madukotawatte.erp.dto.loan.EmployeeLoanRequest;
-import com.madukotawatte.erp.dto.loan.EmployeeLoanResponse;
-import com.madukotawatte.erp.dto.loan.UpdateLoanRequest;
 import com.madukotawatte.erp.entity.Attendance;
 import com.madukotawatte.erp.entity.Employee;
 import com.madukotawatte.erp.entity.EmployeeLoan;
 import com.madukotawatte.erp.entity.EmployeeTransaction;
+import com.madukotawatte.erp.entity.PayType;
 import com.madukotawatte.erp.exception.BadRequestException;
 import com.madukotawatte.erp.exception.ResourceNotFoundException;
 import com.madukotawatte.erp.mapper.AttendanceMapper;
-import com.madukotawatte.erp.mapper.EmployeeLoanMapper;
 import com.madukotawatte.erp.mapper.EmployeeMapper;
 import com.madukotawatte.erp.mapper.EmployeeTransactionMapper;
 import com.madukotawatte.erp.repository.AttendanceRepository;
 import com.madukotawatte.erp.repository.EmployeeLoanRepository;
 import com.madukotawatte.erp.repository.EmployeeRepository;
 import com.madukotawatte.erp.repository.EmployeeTransactionRepository;
-import com.madukotawatte.erp.repository.LabourRepository;
-import com.madukotawatte.erp.entity.Labour;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,7 +45,7 @@ public class WorkforceService {
     private final EmployeeLoanRepository employeeLoanRepository;
     private final EmployeeTransactionRepository employeeTransactionRepository;
     private final AttendanceRepository attendanceRepository;
-    private final LabourRepository labourRepository;
+    private final PayrollService payrollService;
 
     // Employee CRUD
     public PageResponse<EmployeeResponse> getAllEmployees(String name, Pageable pageable) {
@@ -76,6 +71,7 @@ public class WorkforceService {
 
     @Transactional
     public EmployeeResponse createEmployee(EmployeeRequest request) {
+        validatePayFields(request, null);
         Employee employee = EmployeeMapper.toEntity(request);
         return EmployeeMapper.toResponse(employeeRepository.save(employee));
     }
@@ -83,6 +79,7 @@ public class WorkforceService {
     @Transactional
     public EmployeeResponse updateEmployee(String id, EmployeeRequest request) {
         Employee employee = findEmployeeById(id);
+        validatePayFields(request, employee);
         employee.setName(request.getName());
         employee.setJoinedDate(request.getJoinedDate());
         employee.setSalary(request.getSalary());
@@ -90,10 +87,33 @@ public class WorkforceService {
             employee.setRatePerTree(request.getRatePerTree());
         }
         employee.setPosition(request.getPosition());
+        employee.setPayType(EmployeeMapper.resolvePayType(request));
+        employee.setHourlyRate(request.getHourlyRate());
         if (request.getIsActive() != null) {
             employee.setIsActive(request.getIsActive());
         }
         return EmployeeMapper.toResponse(employeeRepository.save(employee));
+    }
+
+    /** The pay type decides which rate is mandatory. */
+    private void validatePayFields(EmployeeRequest request, Employee existing) {
+        PayType payType = EmployeeMapper.resolvePayType(request);
+        switch (payType) {
+            case FIXED_MONTHLY -> {
+                if (request.getSalary() == null || request.getSalary().signum() <= 0)
+                    throw new BadRequestException("A monthly salary is required for fixed-salary employees");
+            }
+            case PER_TREE -> {
+                BigDecimal rate = request.getRatePerTree() != null ? request.getRatePerTree()
+                        : existing != null ? existing.getRatePerTree() : null;
+                if (rate == null || rate.signum() <= 0)
+                    throw new BadRequestException("A rate per tree is required for per-tree employees");
+            }
+            case HOURLY -> {
+                if (request.getHourlyRate() == null || request.getHourlyRate().signum() <= 0)
+                    throw new BadRequestException("An hourly rate is required for hourly employees");
+            }
+        }
     }
 
     @Transactional
@@ -104,53 +124,6 @@ public class WorkforceService {
             throw new BadRequestException("Cannot delete employee with active loans");
         }
         employeeRepository.delete(employee);
-    }
-
-    // Loan operations
-    @Transactional
-    public EmployeeLoanResponse createLoan(EmployeeLoanRequest request) {
-        Employee employee = findEmployeeById(request.getEmployeeId());
-        List<EmployeeLoan> activeLoans = employeeLoanRepository.findByEmployee_EmployeeIdAndIsActiveTrue(request.getEmployeeId());
-        if (!activeLoans.isEmpty()) {
-            throw new BadRequestException("Employee already has an active loan");
-        }
-        EmployeeLoan loan = EmployeeLoanMapper.toEntity(request, employee);
-        return EmployeeLoanMapper.toResponse(employeeLoanRepository.save(loan));
-    }
-
-    public List<EmployeeLoanResponse> getEmployeeLoans(String employeeId) {
-        findEmployeeById(employeeId);
-        return employeeLoanRepository.findByEmployee_EmployeeId(employeeId).stream()
-                .map(EmployeeLoanMapper::toResponse)
-                .collect(Collectors.toList());
-    }
-
-    public EmployeeLoanResponse getLoan(String loanId) {
-        EmployeeLoan loan = employeeLoanRepository.findById(loanId)
-                .orElseThrow(() -> new ResourceNotFoundException("EmployeeLoan", "id", loanId));
-        return EmployeeLoanMapper.toResponse(loan);
-    }
-
-    @Transactional
-    public EmployeeLoanResponse updateLoan(String loanId, UpdateLoanRequest request) {
-        EmployeeLoan loan = employeeLoanRepository.findById(loanId)
-                .orElseThrow(() -> new ResourceNotFoundException("EmployeeLoan", "id", loanId));
-        if (request.getIsActive() != null) {
-            loan.setIsActive(request.getIsActive());
-        }
-        if (request.getCurrentBalance() != null) {
-            loan.setCurrentBalance(request.getCurrentBalance());
-        }
-        if (request.getInstallment() != null) {
-            loan.setInstallment(request.getInstallment());
-        }
-        return EmployeeLoanMapper.toResponse(employeeLoanRepository.save(loan));
-    }
-
-    public List<EmployeeLoanResponse> getActiveLoans() {
-        return employeeLoanRepository.findByIsActiveTrue().stream()
-                .map(EmployeeLoanMapper::toResponse)
-                .collect(Collectors.toList());
     }
 
     // Employee transactions
@@ -290,34 +263,8 @@ public class WorkforceService {
         };
     }
 
-    // Payment summary (Payment tab KPI cards)
+    // Payment summary (Payroll tab KPI cards)
     public PaymentSummaryResponse getPaymentSummary() {
-        BigDecimal totalSalaryCost = employeeRepository.findByIsActiveTrue().stream()
-                .map(Employee::getSalary)
-                .filter(java.util.Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
-
-        BigDecimal toBePaid = labourRepository.findByIsPaidAndTimestampBetween(false, startOfMonth, endOfMonth)
-                .stream().map(Labour::getAmount).filter(java.util.Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal paidAmount = labourRepository.findByIsPaidAndTimestampBetween(true, startOfMonth, endOfMonth)
-                .stream().map(Labour::getAmount).filter(java.util.Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal activeEmployeeLoansTotal = employeeLoanRepository.findByIsActiveTrue().stream()
-                .map(EmployeeLoan::getCurrentBalance)
-                .filter(java.util.Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return PaymentSummaryResponse.builder()
-                .totalSalaryCost(totalSalaryCost)
-                .toBePaid(toBePaid)
-                .paidAmount(paidAmount)
-                .activeEmployeeLoansTotal(activeEmployeeLoansTotal)
-                .build();
+        return payrollService.paymentSummary();
     }
 }

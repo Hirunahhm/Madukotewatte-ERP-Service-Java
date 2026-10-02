@@ -26,6 +26,13 @@ public class Employee extends BaseEntity {
     @Column(name = "rate_per_tree")
     private BigDecimal ratePerTree = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pay_type", nullable = false, length = 20)
+    private PayType payType = PayType.FIXED_MONTHLY;
+
+    @Column(name = "hourly_rate", precision = 10, scale = 2)
+    private BigDecimal hourlyRate;
+
     private String position;
 
     @Column(name = "is_active", nullable = false)

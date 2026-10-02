@@ -43,6 +43,7 @@ public class LabourMapper {
                 .description(labour.getDescription())
                 .timestamp(labour.getTimestamp())
                 .accountCode(labour.getAccountCode())
+                .payslipId(labour.getPayslip() != null ? labour.getPayslip().getPayslipId() : null)
                 .createdAt(labour.getCreatedAt())
                 .updatedAt(labour.getUpdatedAt())
                 .build();

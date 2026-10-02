@@ -1,5 +1,6 @@
 package com.madukotawatte.erp.dto.employee;
 
+import com.madukotawatte.erp.entity.PayType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,8 @@ public class EmployeeResponse {
     private LocalDate joinedDate;
     private BigDecimal salary;
     private BigDecimal ratePerTree;
+    private PayType payType;
+    private BigDecimal hourlyRate;
     private String position;
     private Boolean isActive;
     private LocalDateTime createdAt;

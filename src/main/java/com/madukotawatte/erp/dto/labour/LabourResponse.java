@@ -26,6 +26,7 @@ public class LabourResponse {
     private String description;
     private LocalDateTime timestamp;
     private String accountCode;
+    private String payslipId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

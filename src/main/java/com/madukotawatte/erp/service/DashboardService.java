@@ -1,6 +1,8 @@
 package com.madukotawatte.erp.service;
 
 import com.madukotawatte.erp.dto.dashboard.*;
+import com.madukotawatte.erp.dto.payroll.PayrollPreviewRow;
+import com.madukotawatte.erp.dto.payroll.PayrollSummaryRow;
 import com.madukotawatte.erp.dto.account.AccountBalanceResponse;
 import com.madukotawatte.erp.dto.estateloan.EstateLoanBalanceResponse;
 import com.madukotawatte.erp.dto.monetary.AssetBalanceResponse;
@@ -20,6 +22,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +42,7 @@ public class DashboardService {
     private final EmployeeLoanRepository employeeLoanRepository;
     private final EmployeeTransactionRepository employeeTransactionRepository;
     private final LedgerService ledgerService;
+    private final PayrollService payrollService;
 
     public DashboardSummaryResponse getSummary() {
         // Cash/bank balances and credit-card amounts owed come from the account ledger (Wave 3 rewrites this page)
@@ -104,51 +109,44 @@ public class DashboardService {
                 .build();
     }
 
+    /**
+     * Month view built on the payroll service: for every ACTIVE employee what is still payable for the month
+     * (the payroll preview: unpaid fixed salary, tapping, hourly labour, outstanding advance, suggested
+     * deductions, net) next to what has already been paid on payslips with a payment date in that month.
+     */
     public MonthlyPayrollResponse getMonthlyPayroll(int month, int year) {
-        LocalDateTime startOfMonth = LocalDate.of(year, month, 1).atStartOfDay();
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        LocalDateTime from = start.atStartOfDay();
+        LocalDateTime to = end.plusDays(1).atStartOfDay();
 
-        List<Employee> employees = employeeRepository.findAll();
+        Map<String, PayrollSummaryRow> paid = new HashMap<>();
+        for (PayrollSummaryRow row : payrollService.summary(start, end).getRows()) {
+            paid.put(row.getEmployeeId(), row);
+        }
         List<EmployeePayrollEntry> entries = new ArrayList<>();
-
-        for (Employee employee : employees) {
-            String employeeId = employee.getEmployeeId();
-
-            // Count work days (attendances with noWork == "none")
-            List<Attendance> attendances = attendanceRepository
-                    .findByEmployee_EmployeeIdAndTimestampBetween(employeeId, startOfMonth, endOfMonth);
-            int workDays = (int) attendances.stream()
+        for (PayrollPreviewRow row : payrollService.preview(start, end, null)) {
+            int workDays = (int) attendanceRepository
+                    .findByEmployee_EmployeeIdAndTimestampBetween(row.getEmployeeId(), from, to).stream()
                     .filter(a -> "none".equals(a.getNoWork()))
                     .count();
-
-            // Sum transactions by type
-            BigDecimal latexTap = sumTransactionsByType(employeeId, "Latex_Tap", startOfMonth, endOfMonth);
-            BigDecimal advances = sumTransactionsByType(employeeId, "Advance", startOfMonth, endOfMonth);
-            BigDecimal loanDeductions = sumTransactionsByType(employeeId, "Loan_Payment", startOfMonth, endOfMonth);
-            BigDecimal manualLabor = sumTransactionsByType(employeeId, "Manual_Labor", startOfMonth, endOfMonth);
-
-            // net = salary + latexTap + manualLabor - advances - loanDeductions
-            BigDecimal salary = employee.getSalary() != null ? employee.getSalary() : BigDecimal.ZERO;
-            BigDecimal net = salary.add(latexTap).add(manualLabor).subtract(advances).subtract(loanDeductions);
-
+            PayrollSummaryRow done = paid.get(row.getEmployeeId());
             entries.add(EmployeePayrollEntry.builder()
-                    .employeeId(employeeId)
-                    .employeeName(employee.getName())
-                    .salary(salary)
+                    .employeeId(row.getEmployeeId())
+                    .employeeName(row.getEmployeeName())
+                    .salary(row.getFixedSalary())
                     .workDays(workDays)
-                    .latexTap(latexTap)
-                    .advances(advances)
-                    .loanDeductions(loanDeductions)
-                    .manualLabor(manualLabor)
-                    .net(net)
+                    .latexTap(row.getTapEarnings())
+                    .advances(row.getOutstandingAdvances())
+                    .loanDeductions(row.getSuggestedLoanDeduction())
+                    .manualLabor(row.getHourlyEarnings())
+                    .net(row.getNetPay())
+                    .paidGross(done != null ? done.getGross() : BigDecimal.ZERO)
+                    .paidNet(done != null ? done.getNet() : BigDecimal.ZERO)
+                    .payslipCount(done != null ? done.getPayslipCount() : 0)
                     .build());
         }
-
-        return MonthlyPayrollResponse.builder()
-                .month(month)
-                .year(year)
-                .entries(entries)
-                .build();
+        return MonthlyPayrollResponse.builder().month(month).year(year).entries(entries).build();
     }
 
     public byte[] exportPayroll(int month, int year) {
@@ -159,10 +157,10 @@ public class DashboardService {
 
             Sheet sheet = workbook.createSheet("Payroll " + month + "-" + year);
 
-            // Header row
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Employee ID", "Name", "Salary", "Work Days",
-                    "Latex Tap", "Manual Labor", "Advances", "Loan Deductions", "Net"};
+            String[] headers = {"Employee ID", "Name", "Fixed Salary (unpaid)", "Work Days", "Tapping (unpaid)",
+                    "Hourly Labour (unpaid)", "Outstanding Advances", "Suggested Loan Deduction", "Net Payable",
+                    "Paid Gross (payslips)", "Paid Net (payslips)", "Payslips"};
             CellStyle headerStyle = workbook.createCellStyle();
             Font headerFont = workbook.createFont();
             headerFont.setBold(true);
@@ -174,7 +172,6 @@ public class DashboardService {
                 cell.setCellStyle(headerStyle);
             }
 
-            // Data rows
             int rowNum = 1;
             for (EmployeePayrollEntry entry : payroll.getEntries()) {
                 Row row = sheet.createRow(rowNum++);
@@ -187,9 +184,11 @@ public class DashboardService {
                 row.createCell(6).setCellValue(entry.getAdvances().doubleValue());
                 row.createCell(7).setCellValue(entry.getLoanDeductions().doubleValue());
                 row.createCell(8).setCellValue(entry.getNet().doubleValue());
+                row.createCell(9).setCellValue(entry.getPaidGross().doubleValue());
+                row.createCell(10).setCellValue(entry.getPaidNet().doubleValue());
+                row.createCell(11).setCellValue(entry.getPayslipCount());
             }
 
-            // Auto-size columns
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
@@ -200,16 +199,5 @@ public class DashboardService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate payroll export", e);
         }
-    }
-
-    private BigDecimal sumTransactionsByType(String employeeId, String type,
-                                              LocalDateTime from, LocalDateTime to) {
-        return employeeTransactionRepository
-                .findByEmployee_EmployeeIdAndTimestampBetween(employeeId, from, to,
-                        PageRequest.of(0, Integer.MAX_VALUE))
-                .stream()
-                .filter(t -> type.equals(t.getType()))
-                .map(EmployeeTransaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

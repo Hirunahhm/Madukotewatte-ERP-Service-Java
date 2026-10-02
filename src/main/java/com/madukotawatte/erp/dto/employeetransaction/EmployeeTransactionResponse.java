@@ -20,5 +20,8 @@ public class EmployeeTransactionResponse {
     private String accountCode;
     private BigDecimal amount;
     private LocalDateTime timestamp;
+    private String ledgerTransactionId;
+    private String note;
+    private String payslipId;
     private LocalDateTime createdAt;
 }

@@ -19,7 +19,7 @@ public class EmployeeTransaction extends BaseEntity {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    // 'Manual_Labor' | 'Advance' | 'Loan_Payment' | 'Latex_Tap' | 'Salary_Payment'
+    // 'Manual_Labor' | 'Advance' | 'Advance_Recovery' | 'Loan_Payment' | 'Latex_Tap' | 'Salary_Payment' (legacy)
     @Column(length = 20)
     private String type;
 
@@ -31,4 +31,17 @@ public class EmployeeTransaction extends BaseEntity {
     private BigDecimal amount;
 
     private LocalDateTime timestamp;
+
+    // ledger row this transaction moved money through (advances); null otherwise
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_id")
+    private MonetaryAssetTransaction transaction;
+
+    @Column(length = 255)
+    private String note;
+
+    // set once the transaction has been settled on a payslip (Latex_Tap) or was produced by one (recoveries)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payslip_id")
+    private Payslip payslip;
 }

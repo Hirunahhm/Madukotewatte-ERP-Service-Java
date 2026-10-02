@@ -7,6 +7,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Data
 public class EmployeeLoanRequest {
@@ -24,4 +25,11 @@ public class EmployeeLoanRequest {
     @NotNull
     @Positive
     private BigDecimal installment;
+
+    // cash or bank account the principal is paid out of (posts EMPLOYEE_LOAN_ISSUE)
+    @NotBlank
+    private String accountCode;
+
+    @NotNull
+    private LocalDate issuedDate;
 }
