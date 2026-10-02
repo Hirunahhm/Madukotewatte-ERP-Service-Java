@@ -16,6 +16,8 @@ import java.util.List;
 public class FixedAssetSummaryResponse {
     private long totalCount;
     private BigDecimal totalAcquisitionValue;
+    /** Total net book value today of active assets. */
     private BigDecimal totalCurrentValue;
+    private BigDecimal totalAccumulatedDepreciation;
     private List<CategoryTotalResponse> byCategory;
 }

@@ -31,6 +31,7 @@ public class FixedAsset extends BaseEntity {
     private BigDecimal currentValue;
 
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private String status = "active";
 
     @Column(length = 255)
@@ -38,4 +39,34 @@ public class FixedAsset extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    @Column(name = "useful_life_years")
+    private Integer usefulLifeYears;
+
+    @Column(name = "residual_value", precision = 15, scale = 2, nullable = false)
+    @Builder.Default
+    private BigDecimal residualValue = BigDecimal.ZERO;
+
+    /** STRAIGHT_LINE | NONE */
+    @Column(name = "depreciation_method", nullable = false, length = 20)
+    @Builder.Default
+    private String depreciationMethod = "STRAIGHT_LINE";
+
+    @Column(name = "purchase_account_code", length = 40)
+    private String purchaseAccountCode;
+
+    @Column(name = "purchase_transaction_id", length = 36)
+    private String purchaseTransactionId;
+
+    @Column(name = "disposal_date")
+    private LocalDate disposalDate;
+
+    @Column(name = "disposal_proceeds", precision = 15, scale = 2)
+    private BigDecimal disposalProceeds;
+
+    @Column(name = "disposal_account_code", length = 40)
+    private String disposalAccountCode;
+
+    @Column(name = "disposal_transaction_id", length = 36)
+    private String disposalTransactionId;
 }

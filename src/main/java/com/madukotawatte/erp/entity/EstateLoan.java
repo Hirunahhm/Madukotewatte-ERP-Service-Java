@@ -32,4 +32,16 @@ public class EstateLoan extends BaseEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @Column(length = 150)
+    private String lender;
+
+    @Column(name = "term_months")
+    private Integer termMonths;
+
+    @Column(name = "installment_amount", precision = 15, scale = 2)
+    private BigDecimal installmentAmount;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 }

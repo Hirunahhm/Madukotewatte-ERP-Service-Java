@@ -21,8 +21,19 @@ public class EstateLoanRequest {
     @NotNull
     private LocalDate issuedDate;
 
+    /** Annual rate in percent. */
     @PositiveOrZero
     private BigDecimal interestRate;
+
+    private String lender;
+
+    @Positive
+    private Integer termMonths;
+
+    @PositiveOrZero
+    private BigDecimal installmentAmount;
+
+    private String notes;
 
     /** Optional: cash/bank account the borrowed money was paid into (posts an ESTATE_LOAN_RECEIPT). */
     private String receivedIntoAccountCode;
