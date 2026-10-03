@@ -1,18 +1,15 @@
 package com.madukotawatte.erp.controller;
 
-import com.madukotawatte.erp.dto.dashboard.DailyReportResponse;
-import com.madukotawatte.erp.dto.dashboard.DashboardSummaryResponse;
+import com.madukotawatte.erp.dto.dashboard.DashboardOverviewResponse;
 import com.madukotawatte.erp.dto.dashboard.MonthlyPayrollResponse;
+import com.madukotawatte.erp.service.DashboardOverviewService;
 import com.madukotawatte.erp.service.DashboardService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -21,16 +18,12 @@ import java.time.LocalDate;
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final DashboardOverviewService dashboardOverviewService;
 
-    @GetMapping("/summary")
-    public ResponseEntity<DashboardSummaryResponse> getSummary() {
-        return ResponseEntity.ok(dashboardService.getSummary());
-    }
-
-    @GetMapping("/daily-report")
-    public ResponseEntity<DailyReportResponse> getDailyReport(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseEntity.ok(dashboardService.getDailyReport(date));
+    @GetMapping("/overview")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERVISOR')")
+    public ResponseEntity<DashboardOverviewResponse> getOverview(@RequestParam(required = false) String month) {
+        return ResponseEntity.ok(dashboardOverviewService.overview(month));
     }
 
     @GetMapping("/payroll")

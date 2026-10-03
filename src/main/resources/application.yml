@@ -35,6 +35,8 @@ app:
     latitude: ${ESTATE_LATITUDE:6.916694}
     longitude: ${ESTATE_LONGITUDE:81.298806}
     timezone: ${ESTATE_TIMEZONE:Asia/Colombo}
+  dashboard:
+    low-balance-threshold: ${DASHBOARD_LOW_BALANCE_THRESHOLD:10000}
   weather:
     forecast-url: https://api.open-meteo.com/v1/forecast
     archive-url: https://archive-api.open-meteo.com/v1/archive
